@@ -64,76 +64,30 @@ function Ph({ name, size = 22, color = "currentColor", weight = 1.6 }) {
 
 // ── INITIAL STATE ─────────────────────────────────────────
 const INIT = {
-  tasks: [
-    { id:1, text:"Lavar louça", done:false, who:"fran", priority:"alta" },
-    { id:2, text:"Passar roupa", done:false, who:"nana", priority:"media" },
-    { id:3, text:"Mercado semanal", done:true, who:"fran", priority:"alta" },
-  ],
-  events: [
-    { id:1, title:"Cinema", date:"2026-06-14", time:"19:00", who:"fran" },
-    { id:2, title:"Aniversário da Naná", date:"2026-07-20", time:"", who:"nana" },
-  ],
-  notes: [
-    { id:1, text:"Lembrar de pagar internet hoje!", who:"fran", ts: Date.now()-3600000 },
-    { id:2, text:"Amo você", who:"nana", ts: Date.now()-7200000 },
-  ],
+  tasks: [],
+  events: [],
+  notes: [],
   finance: {
-    entries: [
-      { id:1, desc:"Mercado", val:-320, cat:"casa", who:"fran", date:"2026-05-20" },
-      { id:2, desc:"Salário Fran", val:3500, cat:"renda", who:"fran", date:"2026-05-01" },
-      { id:3, desc:"Netflix", val:-45, cat:"lazer", who:"nana", date:"2026-05-15" },
-    ],
-    goals: [
-      { id:1, text:"Viagem pra Portugal", target:8000, current:1200 },
-      { id:2, text:"Reforma cozinha", target:5000, current:800 },
-    ],
+    entries: [],
+    goals: [],
   },
-  dreams: [
-    { id:1, text:"Morar juntas", done:false },
-    { id:2, text:"Ir pra Europa", done:false },
-    { id:3, text:"Ter um gatinho", done:true },
-  ],
+  dreams: [],
   saved: {
-    filmes:[{ id:1, text:"Carol", status:"assistido", who:"nana", link:"" }],
-    series:[{ id:1, text:"Euphoria", status:"assistindo", who:"fran", link:"" }],
-    leituras:[{ id:1, text:"Normal People", status:"quero ler", who:"nana", link:"" }],
-    posts:[],
-    presentes:[],
+    filmes:[], series:[], livros:[], comidas:[], lugares:[],
+    viagens:[], presentes:[], mala:[], casa:[],
   },
   users: {
-    fran: { mood:"feliz", status:"Em casa" },
-    nana: { mood:"apaixonada", status:"Trabalhando" },
+    fran: { mood:"feliz", status:"" },
+    nana: { mood:"feliz", status:"" },
   },
-  inspiracoes: [
-    { id:1, titulo:"Decoração jardim", url:"https://pinterest.com", categoria:"decoracao", nota:"lindissima", votos:{ fran:"gostei", nana:"gostei" } },
-    { id:2, titulo:"Bouquet delicado", url:"https://pinterest.com", categoria:"flores", nota:"", votos:{ fran:"gostei", nana:null } },
-  ],
+  inspiracoes: [],
   saude: {
-    fran: {
-      alergias: ["Dipirona", "Amendoim"],
-      medicamentos: [],
-      consultas: [
-        { id:1, texto:"Ginecologista", data:"2026-07-10", feito:false },
-        { id:2, texto:"Dentista", data:"2026-06-20", feito:false },
-      ],
-      tipoSanguineo: "",
-      obs: "",
-    },
-    nana: {
-      alergias: [],
-      medicamentos: ["Anticoncepcional"],
-      consultas: [
-        { id:1, texto:"Clínico geral", data:"2026-08-05", feito:false },
-      ],
-      tipoSanguineo: "",
-      obs: "",
-    },
+    fran: { alergias:[], medicamentos:[], consultas:[], tipoSanguineo:"", obs:"" },
+    nana: { alergias:[], medicamentos:[], consultas:[], tipoSanguineo:"", obs:"" },
   },
   ciclos: {
     fran: [],
-    nana: [
-      { id:1, inicio:"2026-05-01", duracao:5, fluxo:"médio", sintomas:["cólica"], humor:"ok", notas:"" },
-    ],
+    nana: [],
   },
 };
 

@@ -124,6 +124,24 @@ function useLS(key, init) {
 }
 
 // Sincroniza dados compartilhados com Firebase em tempo real
+function deepMerge(base, override) {
+  const result = { ...base };
+  for (const key of Object.keys(override || {})) {
+    if (
+      override[key] !== null &&
+      typeof override[key] === "object" &&
+      !Array.isArray(override[key]) &&
+      typeof base[key] === "object" &&
+      !Array.isArray(base[key])
+    ) {
+      result[key] = deepMerge(base[key], override[key]);
+    } else if (override[key] !== undefined) {
+      result[key] = override[key];
+    }
+  }
+  return result;
+}
+
 function useFirebase(key, init) {
   const [val, setValLocal] = useState(init);
   const [loaded, setLoaded] = useState(false);
@@ -132,7 +150,8 @@ function useFirebase(key, init) {
     const r = dbRef(db, key);
     const unsub = onValue(r, (snap) => {
       if (snap.exists()) {
-        setValLocal(snap.val());
+        // Merge com INIT para garantir que campos novos existam
+        setValLocal(deepMerge(init, snap.val()));
       } else {
         set(r, init);
         setValLocal(init);

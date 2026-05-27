@@ -92,6 +92,7 @@ const INIT = {
 };
 
 // ── HELPERS ───────────────────────────────────────────────
+// Salva uid localmente (não precisa sincronizar entre as duas)
 function useLS(key, init) {
   const [val, setVal] = useState(() => {
     try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : init; }
@@ -99,6 +100,36 @@ function useLS(key, init) {
   });
   useEffect(() => { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }, [key, val]);
   return [val, setVal];
+}
+
+// Sincroniza dados compartilhados com Firebase em tempo real
+function useFirebase(key, init) {
+  const [val, setValLocal] = useState(init);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    const dbRef = ref(db, key);
+    const unsub = onValue(dbRef, (snap) => {
+      if (snap.exists()) {
+        setValLocal(snap.val());
+      } else {
+        set(dbRef, init);
+        setValLocal(init);
+      }
+      setLoaded(true);
+    });
+    return () => unsub();
+  }, [key]);
+
+  const setVal = (updater) => {
+    setValLocal(prev => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      set(ref(db, key), next);
+      return next;
+    });
+  };
+
+  return [val, setVal, loaded];
 }
 
 function fmtDate(d) {
@@ -1176,8 +1207,17 @@ const TABS = [
 
 export default function Sapalar() {
   const [uid, setUid] = useLS("sapalar_uid", null);
-  const [state, setState] = useLS("sapalar_state", INIT);
+  const [state, setState, loaded] = useFirebase("sapalar_state", INIT);
   const [tab, setTab] = useState("home");
+
+  if (!uid) return <Login onLogin={setUid} />;
+  if (!loaded) return (
+    <div style={{ minHeight:"100vh", background:"linear-gradient(135deg,#fde8ee,#ede9fe)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center" }}>
+      <img src={ICON_B64} alt="Sapalar" style={{ width:100, height:100, borderRadius:"50%", objectFit:"cover", marginBottom:16 }} />
+      <div style={{ fontSize:18, fontWeight:800, color:"#e8365d" }}>Sapalar</div>
+      <div style={{ fontSize:13, color:"#57534e", marginTop:8 }}>carregando...</div>
+    </div>
+  );
 
   if (!uid) return <Login onLogin={setUid} />;
 

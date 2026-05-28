@@ -709,67 +709,120 @@ function Dreams({ state, setState, uid }) {
       )}
 
       {/* ── LISTAS ── */}
-      {tab==="listas" && (
-        <>
-          {/* Header resumo */}
-          <div style={{ background:`linear-gradient(135deg,${C.purple},${C.purpleDark})`, borderRadius:20, padding:"14px 16px", marginBottom:14, color:"white" }}>
-            <div style={{ fontWeight:800, fontSize:16 }}>Listas juntas</div>
-            <div style={{ fontSize:12, opacity:0.85 }}>{totalItens} itens salvos no total</div>
+      {tab==="listas" && <ListasCats state={state} setState={setState} uid={uid} CATS={CATS} addItem={addItem} cycleStatus={cycleStatus} delItem={delItem} sf={sf} setSf={setSf} totalItens={totalItens} />}
+    </div>
+  );
+}
+
+// ── LISTAS CATS ───────────────────────────────────────────
+function ListasCats({ state, setState, uid, CATS, addItem, cycleStatus, delItem, sf, setSf, totalItens }) {
+  const [activeCat, setActiveCat] = useState("filmes");
+  const meta = CATS[activeCat];
+  const items = state.saved[activeCat] || [];
+  const [showForm, setShowForm] = useState(false);
+
+  const handleAdd = () => {
+    addItem();
+    setShowForm(false);
+  };
+
+  return (
+    <div>
+      {/* Header */}
+      <div style={{ background:`linear-gradient(135deg,${C.purple},${C.purpleDark})`, borderRadius:20, padding:"14px 16px", marginBottom:14, color:"white" }}>
+        <div style={{ fontWeight:800, fontSize:16 }}>Listas juntas</div>
+        <div style={{ fontSize:12, opacity:0.85 }}>{totalItens} itens salvos no total</div>
+      </div>
+
+      {/* Menu categorias — scroll horizontal */}
+      <div style={{ display:"flex", gap:8, overflowX:"auto", paddingBottom:8, marginBottom:14, scrollbarWidth:"none" }}>
+        {Object.entries(CATS).map(([k,v])=>(
+          <button key={k} onClick={()=>{ setActiveCat(k); setSf(f=>({...f,cat:k,status:v.status[0]})); setShowForm(false); }} style={{
+            flexShrink:0, padding:"8px 14px", borderRadius:20, border:"none", cursor:"pointer",
+            background: activeCat===k ? v.color : v.color+"18",
+            color: activeCat===k ? "#fff" : v.color,
+            fontSize:12, fontWeight:700, fontFamily:"inherit",
+            display:"flex", alignItems:"center", gap:6,
+            boxShadow: activeCat===k ? `0 4px 12px ${v.color}44` : "none",
+            transition:"all .2s",
+          }}>
+            <Ph name={v.icon} size={14} color={activeCat===k?"#fff":v.color} />
+            {v.label}
+            {(state.saved[k]||[]).length > 0 && (
+              <span style={{ background: activeCat===k?"rgba(255,255,255,0.3)":v.color+"22", borderRadius:10, padding:"1px 6px", fontSize:10 }}>
+                {(state.saved[k]||[]).length}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Botão adicionar */}
+      <button onClick={()=>setShowForm(s=>!s)} style={{
+        width:"100%", padding:"12px", borderRadius:16, border:`2px dashed ${meta.color}55`,
+        background: showForm ? meta.color+"15" : "transparent",
+        color:meta.color, fontWeight:700, fontSize:13, cursor:"pointer",
+        fontFamily:"inherit", display:"flex", alignItems:"center", justifyContent:"center", gap:8,
+        marginBottom:12, transition:"all .2s",
+      }}>
+        <Ph name="plus" size={16} color={meta.color} />
+        Adicionar em {meta.label}
+      </button>
+
+      {/* Formulário */}
+      {showForm && (
+        <BlobCard color={meta.color} style={{ marginBottom:14 }}>
+          <Inp value={sf.text} onChange={e=>setSf(f=>({...f,text:e.target.value}))} placeholder="Nome / título..." style={{ marginBottom:8 }} onEnter={handleAdd} />
+          <Inp value={sf.link} onChange={e=>setSf(f=>({...f,link:e.target.value}))} placeholder="Link (opcional)" style={{ marginBottom:10 }} />
+          <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+            {["fran","nana"].map(u=>(
+              <Pill key={u} active={sf.who===u} onClick={()=>setSf(f=>({...f,who:u}))} color={USERS[u].color}>{USERS[u].name}</Pill>
+            ))}
+            <Btn onClick={handleAdd} color={meta.color} small style={{ marginLeft:"auto" }}>Salvar</Btn>
           </div>
+        </BlobCard>
+      )}
 
-          {/* Formulário adicionar */}
-          <BlobCard color={C.purple}>
-            <STitle icon="plus" color={C.purple}>Adicionar item</STitle>
-            <Inp value={sf.text} onChange={e=>setSf(f=>({...f,text:e.target.value}))} placeholder="Nome / título..." style={{ marginBottom:8 }} onEnter={addItem} />
-            <Inp value={sf.link} onChange={e=>setSf(f=>({...f,link:e.target.value}))} placeholder="Link (opcional)" style={{ marginBottom:10 }} />
-
-            {/* Categorias em grid */}
-            <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom:10 }}>
-              {Object.entries(CATS).map(([k,v])=>(
-                <button key={k} onClick={()=>setSf(f=>({...f,cat:k,status:v.status[0]}))} style={{
-                  padding:"6px 12px", borderRadius:16, border:"none", cursor:"pointer",
-                  background: sf.cat===k ? v.color : v.color+"18",
-                  color: sf.cat===k ? "#fff" : v.color,
-                  fontSize:12, fontWeight:700, fontFamily:"inherit",
-                  display:"flex", alignItems:"center", gap:5,
-                }}>
-                  <Ph name={v.icon} size={12} color={sf.cat===k?"#fff":v.color} />
-                  {v.label}
-                </button>
-              ))}
+      {/* Lista da categoria ativa */}
+      {items.length === 0 ? (
+        <div style={{ textAlign:"center", padding:"40px 20px", color:C.textLight }}>
+          <Ph name={meta.icon} size={40} color={meta.color+"55"} />
+          <div style={{ marginTop:12, fontSize:14 }}>Nenhum item ainda em {meta.label}</div>
+          <div style={{ fontSize:12, marginTop:4 }}>Clica em "Adicionar" pra começar!</div>
+        </div>
+      ) : (
+        <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+          {items.map(item=>(
+            <div key={item.id} style={{
+              background:"white", borderRadius:16, padding:"12px 14px",
+              border:`1.5px solid ${meta.color}22`,
+              display:"flex", alignItems:"center", gap:10,
+              boxShadow:`0 2px 8px ${meta.color}10`,
+            }}>
+              <div style={{ width:36, height:36, borderRadius:12, background:meta.color+"15", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                <Ph name={meta.icon} size={18} color={meta.color} />
+              </div>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontSize:14, fontWeight:700, color:C.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                  {item.link
+                    ? <a href={item.link} target="_blank" rel="noreferrer" style={{ color:C.text, textDecoration:"none", display:"flex", alignItems:"center", gap:4 }}>
+                        {item.text} <Ph name="link" size={12} color={C.textLight} />
+                      </a>
+                    : item.text}
+                </div>
+                <div style={{ fontSize:11, color:C.textLight, marginTop:2 }}>por {USERS[item.who]?.name}</div>
+              </div>
+              <button onClick={()=>cycleStatus(activeCat,item.id)} style={{
+                background:meta.color+"18", border:`1px solid ${meta.color}33`,
+                borderRadius:10, padding:"4px 10px", cursor:"pointer",
+                fontSize:11, color:meta.color, fontWeight:700, whiteSpace:"nowrap", fontFamily:"inherit",
+              }}>{item.status}</button>
+              <button onClick={()=>delItem(activeCat,item.id)} style={{ background:"none", border:"none", cursor:"pointer", flexShrink:0 }}>
+                <Ph name="x" size={14} color={C.textLight} />
+              </button>
             </div>
-
-            <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-              {["fran","nana"].map(u=><Pill key={u} active={sf.who===u} onClick={()=>setSf(f=>({...f,who:u}))} color={USERS[u].color}>{USERS[u].name}</Pill>)}
-              <Btn onClick={addItem} color={C.purple} small style={{ marginLeft:"auto" }}>Salvar</Btn>
-            </div>
-          </BlobCard>
-
-          {/* Listas por categoria */}
-          {Object.entries(CATS).map(([cat,meta])=>{
-            const items = state.saved[cat]||[];
-            if(!items.length) return null;
-            return (
-              <BlobCard key={cat} color={meta.color}>
-                <STitle icon={meta.icon} color={meta.color}>{meta.label}</STitle>
-                {items.map(item=>(
-                  <div key={item.id} style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8, background:meta.color+"0e", borderRadius:12, padding:"8px 12px" }}>
-                    <div style={{ flex:1 }}>
-                      <div style={{ fontSize:13, fontWeight:600 }}>
-                        {item.link
-                          ? <a href={item.link} target="_blank" rel="noreferrer" style={{ color:C.text, textDecoration:"none", display:"flex", alignItems:"center", gap:4 }}>{item.text} <Ph name="link" size={12} color={C.textLight} /></a>
-                          : item.text}
-                      </div>
-                      <div style={{ fontSize:11, color:C.textLight }}>{USERS[item.who]?.name}</div>
-                    </div>
-                    <button onClick={()=>cycleStatus(cat,item.id)} style={{ background:meta.color+"22", border:`1px solid ${meta.color}44`, borderRadius:10, padding:"4px 10px", cursor:"pointer", fontSize:11, color:meta.color, fontWeight:700, whiteSpace:"nowrap" }}>{item.status}</button>
-                    <button onClick={()=>delItem(cat,item.id)} style={{ background:"none", border:"none", cursor:"pointer" }}><Ph name="x" size={14} color={C.textLight} /></button>
-                  </div>
-                ))}
-              </BlobCard>
-            );
-          })}
-        </>
+          ))}
+        </div>
       )}
     </div>
   );

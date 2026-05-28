@@ -1061,7 +1061,7 @@ function Inspiracao({ state, setState, uid }) {
   };
 
   const votar = (id, voto) => {
-    setState(s=>({...s,inspiracoes:(s.inspiracoes||[]).map(i=>i.id===id?{...i,votos:{...i.votos,[uid]:i.votos[uid]===voto?null:voto}}:i)}));
+    setState(s=>({...s,inspiracoes:(s.inspiracoes||[]).map(i=>i.id===id?{...i,votos:{...i.votos,[uid]:i.votos?.[uid]===voto?null:voto}}:i)}));
   };
 
   const del = id => setState(s=>({...s,inspiracoes:(s.inspiracoes||[]).filter(i=>i.id!==id)}));
@@ -1088,7 +1088,7 @@ function Inspiracao({ state, setState, uid }) {
             <div style={{ fontSize:12, opacity:0.85 }}>Pinterest, Instagram e muito mais</div>
           </div>
         </div>
-        <div style={{ fontSize:12, opacity:0.75 }}>{(state.inspiracoes||[]).length} inspirações salvas · {(state.inspiracoes||[]).filter(i=>i.votos.fran==="gostei"&&i.votos.nana==="gostei").length} aprovadas pelas duas</div>
+        <div style={{ fontSize:12, opacity:0.75 }}>{(state.inspiracoes||[]).length} inspirações salvas · {(state.inspiracoes||[]).filter(i=>i.votos?.fran==="gostei"&&i.votos?.nana==="gostei").length} aprovadas pelas duas</div>
       </div>
 
       {/* Categorias */}
@@ -1125,7 +1125,7 @@ function Inspiracao({ state, setState, uid }) {
       )}
 
       {filtered.map(item=>{
-        const sv = statusVoto(item.votos);
+        const sv = statusVoto(item.votos || {});
         const cor = catColors[item.categoria] || C.rose;
 
         // Preview de imagem: link direto de imagem ou Pinterest
@@ -1137,7 +1137,7 @@ function Inspiracao({ state, setState, uid }) {
           <div key={item.id} style={{
             background:C.card, borderRadius:20, overflow:"hidden", marginBottom:12,
             boxShadow:`0 4px 16px ${cor}18`,
-            border:`2px solid ${item.votos.fran==="gostei"&&item.votos.nana==="gostei" ? C.mint : cor+"30"}`,
+            border:`2px solid ${item.votos?.fran==="gostei"&&item.votos?.nana==="gostei" ? C.mint : cor+"30"}`,
           }}>
 
             {/* Preview de imagem direta */}
@@ -1203,7 +1203,7 @@ function Inspiracao({ state, setState, uid }) {
             {/* Votos individuais */}
             <div style={{ display:"flex", gap:8 }}>
               {Object.entries(USERS).map(([u, us])=>{
-                const v = item.votos[u];
+                const v = item.votos?.[u];
                 return (
                   <div key={u} style={{ flex:1 }}>
                     <div style={{ fontSize:11, color:C.textLight, marginBottom:4, fontWeight:600 }}>{us.name}</div>

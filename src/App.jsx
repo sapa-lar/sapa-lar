@@ -735,9 +735,8 @@ function Dreams({ state, setState, uid }) {
           meta={CATS[tab]}
           items={state.saved[tab]||[]}
           uid={uid}
-          sf={sf} setSf={setSf}
-          addItem={addItem}
-          cycleStatus={cycleStatus}
+          state={state}
+          setState={setState}
           delItem={delItem}
         />
       )}
@@ -746,77 +745,97 @@ function Dreams({ state, setState, uid }) {
 }
 
 // ── LISTA CATEGORIA ───────────────────────────────────────
-function ListaCat({ cat, meta, items, uid, sf, setSf, addItem, cycleStatus, delItem }) {
+function ListaCat({ cat, meta, items, uid, setState, state, delItem }) {
   const [showForm, setShowForm] = useState(false);
-  const handleAdd = () => { addItem(); setShowForm(false); };
+  const [newText, setNewText] = useState("");
+  const [newLink, setNewLink] = useState("");
+
+  const handleAdd = () => {
+    if (!newText.trim()) return;
+    setState(s => ({
+      ...s,
+      saved: {
+        ...s.saved,
+        [cat]: [...(s.saved[cat] || []), {
+          id: Date.now(), text: newText, link: newLink,
+          cat, status: meta.status[0], who: uid, done: false
+        }]
+      }
+    }));
+    setNewText("");
+    setNewLink("");
+    setShowForm(false);
+  };
+
+  const toggleDone = (id) => {
+    setState(s => ({
+      ...s,
+      saved: {
+        ...s.saved,
+        [cat]: (s.saved[cat] || []).map(i => i.id === id ? { ...i, done: !i.done } : i)
+      }
+    }));
+  };
 
   return (
-    <div>
-      <button onClick={()=>setShowForm(s=>!s)} style={{
-        width:"100%", padding:"12px", borderRadius:16, border:`2px dashed ${meta.color}55`,
-        background: showForm ? meta.color+"15" : "transparent",
-        color:meta.color, fontWeight:700, fontSize:13, cursor:"pointer",
-        fontFamily:"inherit", display:"flex", alignItems:"center", justifyContent:"center", gap:8,
-        marginBottom:12, transition:"all .2s",
-      }}>
-        <Ph name="plus" size={16} color={meta.color} />
-        Adicionar em {meta.label}
-      </button>
+    <BlobCard color={meta.color}>
+      <STitle icon={meta.icon} color={meta.color}>{meta.label}</STitle>
+
+      {items.map(item => (
+        <div key={item.id} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
+          <button onClick={() => toggleDone(item.id)} style={{
+            width:24, height:24, borderRadius:"50%",
+            border:`2px solid ${meta.color}`,
+            background: item.done ? meta.color : "transparent",
+            cursor:"pointer", flexShrink:0,
+            display:"flex", alignItems:"center", justifyContent:"center",
+          }}>
+            {item.done && <Ph name="check" size={12} color="#fff" />}
+          </button>
+          <span style={{ flex:1, fontSize:14, color:C.text, textDecoration:item.done?"line-through":"none", opacity:item.done?0.5:1 }}>
+            {item.link
+              ? <a href={item.link} target="_blank" rel="noreferrer" style={{ color:C.text, textDecoration:"none", display:"inline-flex", alignItems:"center", gap:4 }}>
+                  {item.text} <Ph name="link" size={12} color={meta.color} />
+                </a>
+              : item.text}
+          </span>
+          <span style={{ fontSize:10, color:C.textLight, flexShrink:0 }}>{USERS[item.who]?.name}</span>
+          <button onClick={() => delItem(cat, item.id)} style={{ background:"none", border:"none", cursor:"pointer", flexShrink:0 }}>
+            <Ph name="x" size={14} color={C.textLight} />
+          </button>
+        </div>
+      ))}
+
+      {items.length === 0 && !showForm && (
+        <div style={{ textAlign:"center", padding:"16px 0 8px", color:C.textLight, fontSize:13 }}>
+          Nada aqui ainda — adiciona o primeiro!
+        </div>
+      )}
 
       {showForm && (
-        <BlobCard color={meta.color} style={{ marginBottom:14 }}>
-          <Inp value={sf.text} onChange={e=>setSf(f=>({...f,text:e.target.value,cat,status:meta.status[0]}))} placeholder="Nome / título..." style={{ marginBottom:8 }} onEnter={handleAdd} />
-          <Inp value={sf.link} onChange={e=>setSf(f=>({...f,link:e.target.value}))} placeholder="Link (opcional)" style={{ marginBottom:10 }} />
-          <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-            {["fran","nana"].map(u=>(
-              <Pill key={u} active={sf.who===u} onClick={()=>setSf(f=>({...f,who:u}))} color={USERS[u].color}>{USERS[u].name}</Pill>
-            ))}
-            <Btn onClick={handleAdd} color={meta.color} small style={{ marginLeft:"auto" }}>Salvar</Btn>
+        <div style={{ marginTop:8, display:"flex", flexDirection:"column", gap:8 }}>
+          <Inp value={newText} onChange={e=>setNewText(e.target.value)} placeholder="Nome / título..." onEnter={handleAdd} />
+          <Inp value={newLink} onChange={e=>setNewLink(e.target.value)} placeholder="Link (opcional)" onEnter={handleAdd} />
+          <div style={{ display:"flex", gap:8, justifyContent:"flex-end" }}>
+            <button onClick={()=>setShowForm(false)} style={{ background:"none", border:"none", cursor:"pointer", fontSize:12, color:C.textLight, fontFamily:"inherit" }}>cancelar</button>
+            <Btn onClick={handleAdd} color={meta.color} small>Salvar</Btn>
           </div>
-        </BlobCard>
+        </div>
       )}
 
-      {items.length === 0 ? (
-        <div style={{ textAlign:"center", padding:"40px 20px", color:C.textLight }}>
-          <Ph name={meta.icon} size={40} color={meta.color+"55"} />
-          <div style={{ marginTop:12, fontSize:14 }}>Nada em {meta.label} ainda</div>
-          <div style={{ fontSize:12, marginTop:4 }}>Clica em "Adicionar" pra começar!</div>
-        </div>
-      ) : (
-        <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-          {items.map(item=>(
-            <div key={item.id} style={{
-              background:"white", borderRadius:16, padding:"12px 14px",
-              border:`1.5px solid ${meta.color}22`,
-              display:"flex", alignItems:"center", gap:10,
-              boxShadow:`0 2px 8px ${meta.color}10`,
-            }}>
-              <div style={{ width:36, height:36, borderRadius:12, background:meta.color+"15", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                <Ph name={meta.icon} size={18} color={meta.color} />
-              </div>
-              <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ fontSize:14, fontWeight:700, color:C.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-                  {item.link
-                    ? <a href={item.link} target="_blank" rel="noreferrer" style={{ color:C.text, textDecoration:"none", display:"flex", alignItems:"center", gap:4 }}>
-                        {item.text} <Ph name="link" size={12} color={C.textLight} />
-                      </a>
-                    : item.text}
-                </div>
-                <div style={{ fontSize:11, color:C.textLight, marginTop:2 }}>por {USERS[item.who]?.name}</div>
-              </div>
-              <button onClick={()=>cycleStatus(cat,item.id)} style={{
-                background:meta.color+"18", border:`1px solid ${meta.color}33`,
-                borderRadius:10, padding:"4px 10px", cursor:"pointer",
-                fontSize:11, color:meta.color, fontWeight:700, whiteSpace:"nowrap", fontFamily:"inherit",
-              }}>{item.status}</button>
-              <button onClick={()=>delItem(cat,item.id)} style={{ background:"none", border:"none", cursor:"pointer", flexShrink:0 }}>
-                <Ph name="x" size={14} color={C.textLight} />
-              </button>
-            </div>
-          ))}
+      {!showForm && (
+        <div style={{ display:"flex", gap:8, marginTop:8 }}>
+          <button onClick={()=>setShowForm(true)} style={{
+            flex:1, padding:"10px", borderRadius:14, border:`2px dashed ${meta.color}44`,
+            background:"transparent", color:meta.color, fontWeight:700, fontSize:13,
+            cursor:"pointer", fontFamily:"inherit",
+            display:"flex", alignItems:"center", justifyContent:"center", gap:6,
+          }}>
+            <Ph name="plus" size={15} color={meta.color} /> Adicionar
+          </button>
         </div>
       )}
-    </div>
+    </BlobCard>
   );
 }
 

@@ -471,6 +471,8 @@ function Home({ state, setState, uid }) {
     window.open(`https://calendar.google.com/calendar/r/eventedit?text=${encodeURIComponent(ev.title)}&dates=${dates}`, "_blank");
   };
 
+  const delNote = (id) => setState(s => ({ ...s, notes: s.notes.filter(n => n.id !== id) }));
+
   const addNote = () => {
     if (!newNote.trim()) return;
     setState(s => ({ ...s, notes:[{ id:Date.now(), text:newNote, who:uid, ts:Date.now() }, ...s.notes] }));
@@ -521,9 +523,14 @@ function Home({ state, setState, uid }) {
           const n = state.notes[0];
           const u = USERS[n.who];
           return (
-            <div style={{ background:`linear-gradient(135deg,${u.color}15,${u.color}08)`, borderRadius:16, padding:"14px 16px", marginBottom:10, borderLeft:`4px solid ${u.color}` }}>
-              <div style={{ fontSize:16, fontWeight:800, color:C.text, marginBottom:6 }}>{n.text}</div>
+            <div style={{ background:`linear-gradient(135deg,${u.color}15,${u.color}08)`, borderRadius:16, padding:"14px 16px", marginBottom:10, borderLeft:`4px solid ${u.color}`, position:"relative" }}>
+              <div style={{ fontSize:16, fontWeight:800, color:C.text, marginBottom:6, paddingRight:24 }}>{n.text}</div>
               <div style={{ fontSize:11, color:C.textLight }}>{u.name} · {timeAgo(n.ts)}</div>
+              {n.who === uid && (
+                <button onClick={()=>delNote(n.id)} style={{ position:"absolute", top:10, right:10, background:"none", border:"none", cursor:"pointer" }}>
+                  <Ph name="x" size={14} color={C.textLight} />
+                </button>
+              )}
             </div>
           );
         })()}
@@ -531,9 +538,16 @@ function Home({ state, setState, uid }) {
         {(state.notes||[]).slice(1,4).map(n => {
           const u = USERS[n.who];
           return (
-            <div key={n.id} style={{ background:u.color+"10", borderRadius:12, padding:"8px 12px", marginBottom:6, borderLeft:`3px solid ${u.color}` }}>
-              <div style={{ fontSize:13, color:C.text }}>{n.text}</div>
-              <div style={{ fontSize:10, color:C.textLight, marginTop:2 }}>{u.name} · {timeAgo(n.ts)}</div>
+            <div key={n.id} style={{ background:u.color+"10", borderRadius:12, padding:"8px 12px", marginBottom:6, borderLeft:`3px solid ${u.color}`, display:"flex", alignItems:"center", gap:8 }}>
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:13, color:C.text }}>{n.text}</div>
+                <div style={{ fontSize:10, color:C.textLight, marginTop:2 }}>{u.name} · {timeAgo(n.ts)}</div>
+              </div>
+              {n.who === uid && (
+                <button onClick={()=>delNote(n.id)} style={{ background:"none", border:"none", cursor:"pointer", flexShrink:0 }}>
+                  <Ph name="x" size={13} color={C.textLight} />
+                </button>
+              )}
             </div>
           );
         })}
@@ -1564,9 +1578,9 @@ function Sentimentos({ state, setState, uid }) {
   const otherUid = uid === "fran" ? "nana" : "fran";
   const other = USERS[otherUid];
   const myMood = state.users?.[uid]?.mood || "feliz";
-  const otherMood = state.users?.[otherUid]?.mood || "feliz";
+  const otherMood = state.users?.[otherUid]?.mood || null;
   const myCfg = MOOD_CONFIG[myMood] || MOOD_CONFIG.feliz;
-  const otherCfg = MOOD_CONFIG[otherMood] || MOOD_CONFIG.feliz;
+  const otherCfg = MOOD_CONFIG[otherMood] || null;
 
   const setMood = (m) => setState(s=>({...s, users:{...s.users,[uid]:{...s.users[uid],mood:m}}}));
 
@@ -1608,19 +1622,26 @@ function Sentimentos({ state, setState, uid }) {
         </div>
       </div>
 
-      {/* Card da outra */}
-      <div style={{
-        borderRadius:20, padding:"14px 16px",
-        background:`linear-gradient(135deg, ${otherCfg.bg}55, ${otherCfg.bg}22)`,
-        border:`2px solid ${otherCfg.bg}`,
-        marginBottom:14, display:"flex", alignItems:"center", gap:12,
-      }}>
-        <span style={{ fontSize:32 }}>{otherCfg.emoji}</span>
-        <div>
-          <div style={{ fontSize:11, color:otherCfg.color, fontWeight:700, opacity:0.75 }}>{other.name} está</div>
-          <div style={{ fontSize:18, fontWeight:900, color:otherCfg.color }}>{otherMood}</div>
+      {/* Card da outra — só aparece se ela já registrou */}
+      {otherMood && otherCfg ? (
+        <div style={{
+          borderRadius:20, padding:"14px 16px",
+          background:`linear-gradient(135deg, ${otherCfg.bg}55, ${otherCfg.bg}22)`,
+          border:`2px solid ${otherCfg.bg}`,
+          marginBottom:14, display:"flex", alignItems:"center", gap:12,
+        }}>
+          <span style={{ fontSize:32 }}>{otherCfg.emoji}</span>
+          <div>
+            <div style={{ fontSize:11, color:otherCfg.color, fontWeight:700, opacity:0.75 }}>{other.name} está</div>
+            <div style={{ fontSize:18, fontWeight:900, color:otherCfg.color }}>{otherMood}</div>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div style={{ borderRadius:20, padding:"14px 16px", background:C.border+"33", border:`2px dashed ${C.border}`, marginBottom:14, display:"flex", alignItems:"center", gap:12 }}>
+          <span style={{ fontSize:28 }}>🌸</span>
+          <div style={{ fontSize:13, color:C.textLight }}>{other.name} ainda não registrou o humor hoje</div>
+        </div>
+      )}
 
       {/* Balanço de energia */}
       <div style={{ fontWeight:900, fontSize:15, color:C.text, marginBottom:10, paddingLeft:2, letterSpacing:"-0.3px" }}>

@@ -492,31 +492,6 @@ function Home({ state, setState, uid }) {
         </div>
       </BlobCard>
 
-      {/* Humor */}
-      <BlobCard color={me.color}>
-        <STitle icon="sun" color={me.color}>Como você está?</STitle>
-        <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
-          {moods.map(m => {
-            const cur = state.users[uid].mood === m;
-            return (
-              <button key={m} onClick={() => setMood(m)} style={{
-                display:"flex", alignItems:"center", gap:5,
-                padding:"6px 12px", borderRadius:16,
-                background: cur ? me.color : me.color+"14",
-                border:"none", cursor:"pointer",
-                color: cur ? "#fff" : me.color, fontWeight:700, fontSize:12, fontFamily:"inherit",
-              }}>
-                <Ph name={moodIcon[m]} size={14} color={cur ? "#fff" : me.color} />
-                {m}
-              </button>
-            );
-          })}
-        </div>
-      </BlobCard>
-
-      {/* Balanço de energia */}
-      <BalancoEnergia state={state} setState={setState} uid={uid} me={me} />
-
       {/* Recados */}
       <BlobCard color={C.peach}>
         <STitle icon="chat" color={C.peach}>Recados</STitle>
@@ -1437,15 +1412,90 @@ function Saude({ state, setState, uid }) {
   );
 }
 
+// ── TAREFAS + AGENDA ──────────────────────────────────────
+function TarefasAgenda({ state, setState, uid }) {
+  const [subtab, setSubtab] = useState("tarefas");
+  return (
+    <div>
+      <div style={{ display:"flex", gap:8, marginBottom:16 }}>
+        <Pill active={subtab==="tarefas"} onClick={()=>setSubtab("tarefas")} color={C.rose}>
+          <Ph name="checks" size={13} color={subtab==="tarefas"?"#fff":C.rose} /> Tarefas
+        </Pill>
+        <Pill active={subtab==="agenda"} onClick={()=>setSubtab("agenda")} color={C.purple}>
+          <Ph name="calendar" size={13} color={subtab==="agenda"?"#fff":C.purple} /> Agenda
+        </Pill>
+      </div>
+      {subtab==="tarefas" && <Tasks state={state} setState={setState} uid={uid} />}
+      {subtab==="agenda"  && <Agenda state={state} setState={setState} uid={uid} />}
+    </div>
+  );
+}
+
+// ── SENTIMENTOS ───────────────────────────────────────────
+function Sentimentos({ state, setState, uid }) {
+  const me = USERS[uid];
+  const otherUid = uid === "fran" ? "nana" : "fran";
+  const other = USERS[otherUid];
+  const moods = ["feliz","apaixonada","cansada","animada","saudade","calma"];
+  const moodIcon = { feliz:"sun", apaixonada:"heart", cansada:"moon", animada:"sparkle", saudade:"flower", calma:"moon" };
+  const setMood = (m) => setState(s=>({...s,users:{...s.users,[uid]:{...s.users[uid],mood:m}}}));
+
+  return (
+    <div>
+      {/* Como você está */}
+      <BlobCard color={me.color}>
+        <STitle icon="sun" color={me.color}>Como você está?</STitle>
+        <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+          {moods.map(m => {
+            const cur = state.users[uid]?.mood === m;
+            return (
+              <button key={m} onClick={()=>setMood(m)} style={{
+                display:"flex", alignItems:"center", gap:5,
+                padding:"6px 12px", borderRadius:16,
+                background: cur ? me.color : me.color+"14",
+                border:"none", cursor:"pointer",
+                color: cur ? "#fff" : me.color, fontWeight:700, fontSize:12, fontFamily:"inherit",
+              }}>
+                <Ph name={moodIcon[m]} size={14} color={cur?"#fff":me.color} />
+                {m}
+              </button>
+            );
+          })}
+        </div>
+      </BlobCard>
+
+      {/* Como a outra está */}
+      <BlobCard color={other.color}>
+        <STitle icon={moodIcon[state.users[otherUid]?.mood]||"flower"} color={other.color}>{other.name} está...</STitle>
+        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+          <div style={{ width:44, height:44, borderRadius:16, background:other.color+"18", display:"flex", alignItems:"center", justifyContent:"center" }}>
+            <Ph name={moodIcon[state.users[otherUid]?.mood]||"flower"} size={24} color={other.color} />
+          </div>
+          <div>
+            <div style={{ fontWeight:800, fontSize:16, color:other.color }}>{state.users[otherUid]?.mood || "..."}</div>
+            {state.users[otherUid]?.status && <div style={{ fontSize:12, color:C.textMid, marginTop:2 }}>{state.users[otherUid].status}</div>}
+          </div>
+        </div>
+      </BlobCard>
+
+      {/* Balanço de energia */}
+      <div style={{ marginBottom:8 }}>
+        <div style={{ fontWeight:800, fontSize:14, color:C.text, marginBottom:10, paddingLeft:2 }}>Balanço de energia</div>
+        <BalancoEnergia state={state} setState={setState} uid={uid} me={me} />
+      </div>
+    </div>
+  );
+}
+
 // ── MAIN APP ──────────────────────────────────────────────
 const TABS = [
-  { id:"home",       label:"Início",      icon:"house" },
-  { id:"tasks",      label:"Tarefas",     icon:"checks" },
-  { id:"agenda",     label:"Agenda",      icon:"calendar" },
-  { id:"finance",    label:"Finanças",    icon:"wallet" },
-  { id:"dreams",     label:"Listas",      icon:"star" },
-  { id:"saude",      label:"Saúde",       icon:"heartbeat" },
-  { id:"inspiracao", label:"Inspiração",  icon:"heart" },
+  { id:"home",        label:"Início",       icon:"house" },
+  { id:"tarefas",     label:"Tarefas",      icon:"checks" },
+  { id:"finance",     label:"Finanças",     icon:"wallet" },
+  { id:"dreams",      label:"Listas",       icon:"star" },
+  { id:"sentimentos", label:"Sentimentos",  icon:"heart" },
+  { id:"saude",       label:"Saúde",        icon:"heartbeat" },
+  { id:"inspiracao",  label:"Inspiração",   icon:"sparkle" },
 ];
 
 export default function Sapalar() {
@@ -1516,13 +1566,13 @@ export default function Sapalar() {
 
       {/* Content */}
       <div style={{ flex:1, padding:"16px 14px 100px", overflowY:"auto" }}>
-        {tab==="home"       && <Home       state={state} setState={setState} uid={uid} />}
-        {tab==="tasks"      && <Tasks      state={state} setState={setState} uid={uid} />}
-        {tab==="agenda"     && <Agenda     state={state} setState={setState} uid={uid} />}
-        {tab==="finance"    && <Finance    state={state} setState={setState} uid={uid} />}
-        {tab==="dreams"     && <Dreams     state={state} setState={setState} uid={uid} />}
-        {tab==="saude"      && <Saude      state={state} setState={setState} uid={uid} />}
-        {tab==="inspiracao" && <Inspiracao state={state} setState={setState} uid={uid} />}
+        {tab==="home"        && <Home       state={state} setState={setState} uid={uid} />}
+        {tab==="tarefas"     && <TarefasAgenda state={state} setState={setState} uid={uid} />}
+        {tab==="finance"     && <Finance    state={state} setState={setState} uid={uid} />}
+        {tab==="dreams"      && <Dreams     state={state} setState={setState} uid={uid} />}
+        {tab==="sentimentos" && <Sentimentos state={state} setState={setState} uid={uid} />}
+        {tab==="saude"       && <Saude      state={state} setState={setState} uid={uid} />}
+        {tab==="inspiracao"  && <Inspiracao state={state} setState={setState} uid={uid} />}
       </div>
 
       {/* Bottom nav */}

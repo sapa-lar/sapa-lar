@@ -73,6 +73,9 @@ function Ph({ name, size = 22, color = "currentColor", weight = 1.6 }) {
     heartbeat:   <><polyline {...lp} points="32,128 72,128 96,72 128,184 152,96 176,128 224,128"/></>,
     warning:     <><path {...lp} d="M114.15,48l-88,152A16,16,0,0,0,40,224H216a16,16,0,0,0,13.84-24l-88-152A15.92,15.92,0,0,0,114.15,48Z"/><line {...lp} x1="128" y1="136" x2="128" y2="104"/><circle cx="128" cy="168" r="8" fill={color} stroke="none"/></>,
     notes:       <><path {...lp} d="M208,32H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM80,176H72a8,8,0,0,1,0-16h8a8,8,0,0,1,0,16Zm0-40H72a8,8,0,0,1,0-16h8a8,8,0,0,1,0,16Zm0-40H72a8,8,0,0,1,0-16h8a8,8,0,0,1,0,16Zm96,80H112a8,8,0,0,1,0-16h64a8,8,0,0,1,0,16Zm0-40H112a8,8,0,0,1,0-16h64a8,8,0,0,1,0,16Zm0-40H112a8,8,0,0,1,0-16h64a8,8,0,0,1,0,16Z"/></>,
+    chevronleft:  <><polyline {...lp} points="160,208 80,128 160,48"/></>,
+    chevronright: <><polyline {...lp} points="96,48 176,128 96,208"/></>,
+    lightning:   <><polygon {...lp} points="160,16 144,112 224,112 96,240 112,144 32,144 160,16"/></>,
   };
 
   const d = icons[name] || icons["sparkle"];
@@ -98,8 +101,12 @@ const INIT = {
     viagens:[], presentes:[], mala:[], casa:[],
   },
   users: {
-    fran: { mood:"feliz", status:"" },
-    nana: { mood:"feliz", status:"" },
+    fran: { mood:null, status:"" },
+    nana: { mood:null, status:"" },
+  },
+  moodHistory: {
+    fran: {},
+    nana: {},
   },
   balanco: {
     fran: { drena:[], energia:[] },
@@ -1577,12 +1584,41 @@ function Sentimentos({ state, setState, uid }) {
   const me = USERS[uid];
   const otherUid = uid === "fran" ? "nana" : "fran";
   const other = USERS[otherUid];
-  const myMood = state.users?.[uid]?.mood || "feliz";
-  const otherMood = state.users?.[otherUid]?.mood || null;
-  const myCfg = MOOD_CONFIG[myMood] || MOOD_CONFIG.feliz;
+  const todayStr = new Date().toISOString().slice(0,10);
+
+  // Lê humor de hoje do histórico
+  const myMood = state.moodHistory?.[uid]?.[todayStr] || state.users?.[uid]?.mood || null;
+  const otherMood = state.moodHistory?.[otherUid]?.[todayStr] || state.users?.[otherUid]?.mood || null;
+  const myCfg = MOOD_CONFIG[myMood] || null;
   const otherCfg = MOOD_CONFIG[otherMood] || null;
 
-  const setMood = (m) => setState(s=>({...s, users:{...s.users,[uid]:{...s.users[uid],mood:m}}}));
+  // Salva humor hoje + histórico
+  const setMood = (m) => setState(s => ({
+    ...s,
+    users: { ...s.users, [uid]: { ...s.users[uid], mood: m } },
+    moodHistory: {
+      ...(s.moodHistory || {}),
+      [uid]: { ...(s.moodHistory?.[uid] || {}), [todayStr]: m }
+    }
+  }));
+
+  // Calendário
+  const [calMonth, setCalMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+  });
+  const [calYear, calMonthNum] = calMonth.split("-").map(Number);
+  const daysInMonth = new Date(calYear, calMonthNum, 0).getDate();
+  const firstDow = new Date(calYear, calMonthNum-1, 1).getDay();
+  const monthLabel = new Date(calYear, calMonthNum-1, 1).toLocaleDateString("pt-BR", { month:"long", year:"numeric" });
+
+  const prevMonth = () => { const d = new Date(calYear, calMonthNum-2, 1); setCalMonth(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`); };
+  const nextMonth = () => { const d = new Date(calYear, calMonthNum, 1); setCalMonth(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`); };
+
+  const getMood = (who, day) => {
+    const key = `${calMonth}-${String(day).padStart(2,"0")}`;
+    return state.moodHistory?.[who]?.[key] || null;
+  };
 
   return (
     <div style={{ paddingBottom:8 }}>
@@ -1590,16 +1626,16 @@ function Sentimentos({ state, setState, uid }) {
       {/* Header — como você está */}
       <div style={{
         borderRadius:24, padding:"18px 18px 16px",
-        background:`linear-gradient(135deg, ${myCfg.bg}, ${myCfg.bg}aa)`,
+        background: myCfg
+          ? `linear-gradient(135deg, ${myCfg.bg}, ${myCfg.bg}aa)`
+          : `linear-gradient(135deg, #f0ebff, #e8e0ff)`,
         marginBottom:14, position:"relative", overflow:"hidden",
       }}>
-        <div style={{ position:"absolute", right:-20, top:-20, width:90, height:90, borderRadius:"50%", background:myCfg.color+"12" }} />
-        <div style={{ fontSize:12, fontWeight:700, color:myCfg.color, opacity:0.75, marginBottom:4 }}>como você está hoje?</div>
-        <div style={{ fontSize:24, fontWeight:900, color:myCfg.color, marginBottom:16, letterSpacing:"-0.5px" }}>
-          {myCfg.emoji} me sinto {myMood}
+        <div style={{ position:"absolute", right:-20, top:-20, width:90, height:90, borderRadius:"50%", background:"rgba(0,0,0,0.04)" }} />
+        <div style={{ fontSize:12, fontWeight:700, color:myCfg?.color||C.purple, opacity:0.75, marginBottom:4 }}>como você está hoje?</div>
+        <div style={{ fontSize:24, fontWeight:900, color:myCfg?.color||C.purple, marginBottom:16, letterSpacing:"-0.5px" }}>
+          {myCfg ? `${myCfg.emoji} me sinto ${myMood}` : "✦ como você está?"}
         </div>
-
-        {/* Grid estilo calendário — 4 colunas */}
         <div style={{ display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:8 }}>
           {Object.entries(MOOD_CONFIG).map(([m, cfg]) => {
             const sel = myMood === m;
@@ -1607,9 +1643,8 @@ function Sentimentos({ state, setState, uid }) {
               <button key={m} onClick={()=>setMood(m)} style={{
                 background: sel ? cfg.bg : "rgba(255,255,255,0.6)",
                 border: sel ? `2px solid ${cfg.color}` : "2px solid rgba(255,255,255,0.8)",
-                borderRadius:16, padding:"10px 6px",
-                cursor:"pointer", display:"flex", flexDirection:"column",
-                alignItems:"center", gap:4,
+                borderRadius:16, padding:"10px 6px", cursor:"pointer",
+                display:"flex", flexDirection:"column", alignItems:"center", gap:4,
                 boxShadow: sel ? `0 4px 12px ${cfg.color}33` : "none",
                 transform: sel ? "scale(1.05)" : "scale(1)",
                 transition:"all .2s cubic-bezier(.34,1.56,.64,1)",
@@ -1622,14 +1657,9 @@ function Sentimentos({ state, setState, uid }) {
         </div>
       </div>
 
-      {/* Card da outra — só aparece se ela já registrou */}
+      {/* Card da outra */}
       {otherMood && otherCfg ? (
-        <div style={{
-          borderRadius:20, padding:"14px 16px",
-          background:`linear-gradient(135deg, ${otherCfg.bg}55, ${otherCfg.bg}22)`,
-          border:`2px solid ${otherCfg.bg}`,
-          marginBottom:14, display:"flex", alignItems:"center", gap:12,
-        }}>
+        <div style={{ borderRadius:20, padding:"14px 16px", background:`linear-gradient(135deg, ${otherCfg.bg}55, ${otherCfg.bg}22)`, border:`2px solid ${otherCfg.bg}`, marginBottom:14, display:"flex", alignItems:"center", gap:12 }}>
           <span style={{ fontSize:32 }}>{otherCfg.emoji}</span>
           <div>
             <div style={{ fontSize:11, color:otherCfg.color, fontWeight:700, opacity:0.75 }}>{other.name} está</div>
@@ -1638,15 +1668,62 @@ function Sentimentos({ state, setState, uid }) {
         </div>
       ) : (
         <div style={{ borderRadius:20, padding:"14px 16px", background:C.border+"33", border:`2px dashed ${C.border}`, marginBottom:14, display:"flex", alignItems:"center", gap:12 }}>
-          <span style={{ fontSize:28 }}>🌸</span>
-          <div style={{ fontSize:13, color:C.textLight }}>{other.name} ainda não registrou o humor hoje</div>
+          <span style={{ fontSize:24 }}>🌸</span>
+          <div style={{ fontSize:13, color:C.textLight }}>{other.name} ainda não registrou hoje</div>
         </div>
       )}
 
+      {/* Calendário de humores */}
+      <BlobCard color={C.purple}>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
+          <button onClick={prevMonth} style={{ background:"none", border:"none", cursor:"pointer", padding:"4px 8px" }}>
+            <Ph name="chevronleft" size={16} color={C.purple} />
+          </button>
+          <div style={{ fontWeight:800, fontSize:13, color:C.text, textTransform:"capitalize" }}>{monthLabel}</div>
+          <button onClick={nextMonth} style={{ background:"none", border:"none", cursor:"pointer", padding:"4px 8px" }}>
+            <Ph name="chevronright" size={16} color={C.purple} />
+          </button>
+        </div>
+
+        {/* Dias da semana */}
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(7, 1fr)", gap:2, marginBottom:6 }}>
+          {["D","S","T","Q","Q","S","S"].map((d,i) => (
+            <div key={i} style={{ textAlign:"center", fontSize:9, fontWeight:700, color:C.textLight }}>{d}</div>
+          ))}
+        </div>
+
+        {/* Uma linha de calendário por pessoa */}
+        {[uid, otherUid].map(who => (
+          <div key={who} style={{ marginBottom:10 }}>
+            <div style={{ fontSize:10, fontWeight:800, color:USERS[who].color, marginBottom:4 }}>{USERS[who].name}</div>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(7, 1fr)", gap:3 }}>
+              {Array.from({ length: firstDow }).map((_,i) => <div key={`e${i}`} />)}
+              {Array.from({ length: daysInMonth }).map((_,i) => {
+                const day = i + 1;
+                const mood = getMood(who, day);
+                const cfg = MOOD_CONFIG[mood];
+                const isToday = `${calMonth}-${String(day).padStart(2,"0")}` === todayStr;
+                return (
+                  <div key={day} title={mood||""} style={{
+                    aspectRatio:"1", borderRadius:8,
+                    background: cfg ? cfg.bg : "#f0ece8",
+                    display:"flex", alignItems:"center", justifyContent:"center",
+                    border: isToday ? `2px solid ${USERS[who].color}` : "2px solid transparent",
+                  }}>
+                    {cfg
+                      ? <span style={{ fontSize:11 }}>{cfg.emoji}</span>
+                      : <span style={{ fontSize:8, color:C.textLight, fontWeight:600 }}>{day}</span>
+                    }
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </BlobCard>
+
       {/* Balanço de energia */}
-      <div style={{ fontWeight:900, fontSize:15, color:C.text, marginBottom:10, paddingLeft:2, letterSpacing:"-0.3px" }}>
-        balanço de energia
-      </div>
+      <div style={{ fontWeight:900, fontSize:15, color:C.text, marginBottom:10, paddingLeft:2 }}>balanço de energia</div>
       <BalancoEnergia state={state} setState={setState} uid={uid} me={me} />
     </div>
   );

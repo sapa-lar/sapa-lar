@@ -1550,36 +1550,14 @@ function TarefasAgenda({ state, setState, uid }) {
 
 // ── SENTIMENTOS ───────────────────────────────────────────
 const MOOD_CONFIG = {
-  feliz:      { icon:"sun",     bg:"#FFE566", color:"#b8860b", label:"feliz",      shape:"circle" },
-  apaixonada: { icon:"heart",   bg:"#FFB3C6", color:"#c0395a", label:"apaixonada", shape:"blob1" },
-  animada:    { icon:"sparkle", bg:"#B5F0D3", color:"#1a7a4a", label:"animada",    shape:"blob2" },
-  calma:      { icon:"moon",    bg:"#C4D4FF", color:"#2d4fa1", label:"calma",      shape:"circle" },
-  cansada:    { icon:"moon",    bg:"#E0D4F5", color:"#6b3fa0", label:"cansada",    shape:"blob1" },
-  saudade:    { icon:"flower",  bg:"#FFD6B0", color:"#b85c00", label:"saudade",    shape:"blob2" },
+  feliz:      { emoji:"☀️", bg:"#FFE566", color:"#b8860b", label:"feliz" },
+  apaixonada: { emoji:"🩷", bg:"#FFB3C6", color:"#c0395a", label:"apaixonada" },
+  animada:    { emoji:"✨", bg:"#B5F0D3", color:"#1a7a4a", label:"animada" },
+  calma:      { emoji:"🌙", bg:"#C4D4FF", color:"#2d4fa1", label:"calma" },
+  cansada:    { emoji:"😮‍💨", bg:"#E0D4F5", color:"#6b3fa0", label:"cansada" },
+  saudade:    { emoji:"🌸", bg:"#FFD6B0", color:"#b85c00", label:"saudade" },
+  triste:     { emoji:"🌧️", bg:"#D4E4F5", color:"#1a4a7a", label:"triste" },
 };
-
-function MoodBlob({ mood, size=80, selected, onClick }) {
-  const cfg = MOOD_CONFIG[mood] || MOOD_CONFIG.feliz;
-  const borderRadius = cfg.shape === "circle" ? "50%"
-    : cfg.shape === "blob1" ? "60% 40% 55% 45% / 45% 55% 45% 55%"
-    : "40% 60% 45% 55% / 55% 45% 55% 45%";
-  return (
-    <button onClick={onClick} style={{
-      width:size, height:size, borderRadius,
-      background: cfg.bg,
-      border: selected ? `3px solid ${cfg.color}` : "3px solid transparent",
-      cursor:"pointer", display:"flex", flexDirection:"column",
-      alignItems:"center", justifyContent:"center", gap:4,
-      boxShadow: selected ? `0 6px 20px ${cfg.bg}cc` : `0 3px 10px ${cfg.bg}66`,
-      transform: selected ? "scale(1.08)" : "scale(1)",
-      transition:"all .25s cubic-bezier(.34,1.56,.64,1)",
-      flexShrink:0,
-    }}>
-      <Ph name={cfg.icon} size={size*0.32} color={cfg.color} />
-      <span style={{ fontSize:size*0.13, fontWeight:800, color:cfg.color, lineHeight:1 }}>{cfg.label}</span>
-    </button>
-  );
-}
 
 function Sentimentos({ state, setState, uid }) {
   const me = USERS[uid];
@@ -1595,55 +1573,52 @@ function Sentimentos({ state, setState, uid }) {
   return (
     <div style={{ paddingBottom:8 }}>
 
-      {/* Header grande como você está */}
+      {/* Header — como você está */}
       <div style={{
-        borderRadius:28, padding:"22px 20px 20px",
-        background:`linear-gradient(135deg, ${myCfg.bg} 0%, ${myCfg.bg}bb 100%)`,
+        borderRadius:24, padding:"18px 18px 16px",
+        background:`linear-gradient(135deg, ${myCfg.bg}, ${myCfg.bg}aa)`,
         marginBottom:14, position:"relative", overflow:"hidden",
       }}>
-        {/* Blob decorativo */}
-        <div style={{
-          position:"absolute", right:-30, top:-30,
-          width:120, height:120, borderRadius:"40% 60% 55% 45% / 45% 55% 45% 55%",
-          background:myCfg.color+"18",
-        }} />
-        <div style={{ fontSize:12, fontWeight:700, color:myCfg.color, opacity:0.8, marginBottom:4 }}>como você está hoje?</div>
-        <div style={{ fontSize:28, fontWeight:900, color:myCfg.color, marginBottom:16, letterSpacing:"-0.5px" }}>
-          me sinto {myMood} ✦
+        <div style={{ position:"absolute", right:-20, top:-20, width:90, height:90, borderRadius:"50%", background:myCfg.color+"12" }} />
+        <div style={{ fontSize:12, fontWeight:700, color:myCfg.color, opacity:0.75, marginBottom:4 }}>como você está hoje?</div>
+        <div style={{ fontSize:24, fontWeight:900, color:myCfg.color, marginBottom:16, letterSpacing:"-0.5px" }}>
+          {myCfg.emoji} me sinto {myMood}
         </div>
 
-        {/* Grid de moods */}
-        <div style={{ display:"flex", gap:10, flexWrap:"wrap", justifyContent:"center" }}>
-          {Object.keys(MOOD_CONFIG).map(m => (
-            <MoodBlob key={m} mood={m} size={72} selected={myMood===m} onClick={()=>setMood(m)} />
-          ))}
+        {/* Grid estilo calendário — 4 colunas */}
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:8 }}>
+          {Object.entries(MOOD_CONFIG).map(([m, cfg]) => {
+            const sel = myMood === m;
+            return (
+              <button key={m} onClick={()=>setMood(m)} style={{
+                background: sel ? cfg.bg : "rgba(255,255,255,0.6)",
+                border: sel ? `2px solid ${cfg.color}` : "2px solid rgba(255,255,255,0.8)",
+                borderRadius:16, padding:"10px 6px",
+                cursor:"pointer", display:"flex", flexDirection:"column",
+                alignItems:"center", gap:4,
+                boxShadow: sel ? `0 4px 12px ${cfg.color}33` : "none",
+                transform: sel ? "scale(1.05)" : "scale(1)",
+                transition:"all .2s cubic-bezier(.34,1.56,.64,1)",
+              }}>
+                <span style={{ fontSize:22 }}>{cfg.emoji}</span>
+                <span style={{ fontSize:10, fontWeight:800, color: sel ? cfg.color : "#888", lineHeight:1 }}>{cfg.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {/* Card da outra */}
       <div style={{
-        borderRadius:24, padding:"16px 18px",
-        background:`linear-gradient(135deg, ${otherCfg.bg}66, ${otherCfg.bg}33)`,
+        borderRadius:20, padding:"14px 16px",
+        background:`linear-gradient(135deg, ${otherCfg.bg}55, ${otherCfg.bg}22)`,
         border:`2px solid ${otherCfg.bg}`,
-        marginBottom:14, display:"flex", alignItems:"center", gap:14,
+        marginBottom:14, display:"flex", alignItems:"center", gap:12,
       }}>
-        <div style={{
-          width:56, height:56,
-          borderRadius: otherCfg.shape==="circle" ? "50%" : "40% 60% 55% 45% / 55% 45% 55% 45%",
-          background:otherCfg.bg,
-          display:"flex", alignItems:"center", justifyContent:"center",
-          boxShadow:`0 4px 14px ${otherCfg.bg}`,
-          flexShrink:0,
-        }}>
-          <Ph name={otherCfg.icon} size={26} color={otherCfg.color} />
-        </div>
+        <span style={{ fontSize:32 }}>{otherCfg.emoji}</span>
         <div>
-          <div style={{ fontSize:11, color:otherCfg.color, fontWeight:700, opacity:0.8 }}>{other.name} está</div>
-          <div style={{ fontSize:20, fontWeight:900, color:otherCfg.color }}>{otherMood}</div>
-        </div>
-        {/* bolinha decorativa */}
-        <div style={{ marginLeft:"auto", width:36, height:36, borderRadius:"50%", background:otherCfg.bg, display:"flex", alignItems:"center", justifyContent:"center" }}>
-          <Ph name="flower" size={18} color={otherCfg.color} />
+          <div style={{ fontSize:11, color:otherCfg.color, fontWeight:700, opacity:0.75 }}>{other.name} está</div>
+          <div style={{ fontSize:18, fontWeight:900, color:otherCfg.color }}>{otherMood}</div>
         </div>
       </div>
 

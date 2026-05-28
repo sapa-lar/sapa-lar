@@ -432,22 +432,19 @@ function BalancoEnergia({ state, setState, uid, me }) {
 // ── HOME ──────────────────────────────────────────────────
 function Home({ state, setState, uid }) {
   const me = USERS[uid];
-  const other = uid === "nana" ? USERS.fran : USERS.nana;
   const otherUid = uid === "nana" ? "fran" : "nana";
-  const pending = state.tasks.filter(t => !t.done).length;
+  const other = USERS[otherUid];
+  const pending = (state.tasks||[]).filter(t => !t.done).length;
   const [newNote, setNewNote] = useState("");
 
-  const moods = ["feliz","apaixonada","cansada","animada","saudade","calma"];
   const moodIcon = { feliz:"sun", apaixonada:"heart", cansada:"moon", animada:"sparkle", saudade:"flower", calma:"moon" };
 
-  // Próximos eventos — só os que ainda não passaram, ordenados por data
   const today = new Date().toISOString().slice(0,10);
   const upcoming = [...(state.events||[])]
     .filter(e => e.date >= today)
     .sort((a,b) => a.date.localeCompare(b.date))
     .slice(0, 3);
 
-  // Calcula dias restantes
   const daysUntil = (dateStr) => {
     const diff = Math.round((new Date(dateStr+"T12:00:00") - new Date()) / 86400000);
     if (diff === 0) return "hoje!";
@@ -458,7 +455,7 @@ function Home({ state, setState, uid }) {
   const urgencyColor = (dateStr) => {
     const diff = Math.round((new Date(dateStr+"T12:00:00") - new Date()) / 86400000);
     if (diff <= 1) return C.rose;
-    if (diff <= 7) return C.peach;
+    if (diff <= 7) return "#f97316";
     return C.mint;
   };
 
@@ -470,130 +467,155 @@ function Home({ state, setState, uid }) {
       const start = `${d}T${h}${m}00`;
       const endH = String(parseInt(h)+1).padStart(2,"0");
       dates = `${start}/${d}T${endH}${m}00`;
-    } else {
-      dates = `${d}/${d}`;
-    }
+    } else { dates = `${d}/${d}`; }
     window.open(`https://calendar.google.com/calendar/r/eventedit?text=${encodeURIComponent(ev.title)}&dates=${dates}`, "_blank");
   };
+
+  const addNote = () => {
     if (!newNote.trim()) return;
     setState(s => ({ ...s, notes:[{ id:Date.now(), text:newNote, who:uid, ts:Date.now() }, ...s.notes] }));
     setNewNote("");
   };
 
-  const setMood = (m) => setState(s => ({ ...s, users:{ ...s.users, [uid]:{ ...s.users[uid], mood:m } } }));
+  // Bem-estar do casal — lê balanço de energia das duas
+  const franDrena = (state.balanco?.fran?.drena||[]).length;
+  const nanaDrena = (state.balanco?.nana?.drena||[]).length;
+  const franEnergia = (state.balanco?.fran?.energia||[]).length;
+  const nanaEnergia = (state.balanco?.nana?.energia||[]).length;
+  const totalDrena = franDrena + nanaDrena;
+  const totalEnergia = franEnergia + nanaEnergia;
+  const total = totalDrena + totalEnergia;
+  const energiaPct = total > 0 ? Math.round((totalEnergia / total) * 100) : 50;
+  const equilibrio = energiaPct >= 60 ? { label:"Vocês estão equilibradas", color:C.mint, icon:"sparkle" }
+    : energiaPct >= 40 ? { label:"Atenção ao equilíbrio", color:C.yellow, icon:"sun" }
+    : { label:"Energia baixa — cuidem-se!", color:C.rose, icon:"heart" };
+
+  // Alertas de drena frequente
+  const alertas = [];
+  if (franDrena >= 2) alertas.push(`Fran sinalizou ${franDrena}x energia drenada`);
+  if (nanaDrena >= 2) alertas.push(`Naná sinalizou ${nanaDrena}x energia drenada`);
 
   return (
     <div>
-      {/* Hero */}
+      {/* ── HERO ── */}
       <div style={{
-        background:`linear-gradient(135deg, ${me.color} 0%, ${me.color}cc 100%)`,
-        borderRadius:28, padding:"20px 20px 22px", marginBottom:14,
+        background:`linear-gradient(135deg, ${me.color} 0%, ${me.color}bb 100%)`,
+        borderRadius:28, padding:"20px 20px 20px", marginBottom:14,
         color:"white", position:"relative", overflow:"hidden",
       }}>
-        <div style={{ position:"absolute", top:-30, right:-20, width:120, height:120, borderRadius:"50%", background:"rgba(255,255,255,0.09)" }} />
-        <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:14 }}>
-          <img src={ICON_B64} alt="Sapalar" style={{ width:44, height:44, borderRadius:"50%", objectFit:"cover", border:"2px solid rgba(255,255,255,0.4)" }} />
+        <div style={{ position:"absolute", top:-30, right:-20, width:110, height:110, borderRadius:"50%", background:"rgba(255,255,255,0.09)" }} />
+        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+          <img src={ICON_B64} alt="Sapalar" style={{ width:46, height:46, borderRadius:"50%", objectFit:"cover", border:"2px solid rgba(255,255,255,0.4)" }} />
           <div>
-            <div style={{ fontSize:18, fontWeight:800 }}>Oi, {me.name}!</div>
-            <div style={{ fontSize:12, opacity:0.85 }}>Sapalar — o lar de vocês</div>
-          </div>
-        </div>
-        <div style={{ display:"flex", gap:10 }}>
-          <div style={{ flex:1, background:"rgba(255,255,255,0.2)", borderRadius:16, padding:"10px 14px" }}>
-            <div style={{ fontSize:22, fontWeight:800 }}>{pending}</div>
-            <div style={{ fontSize:11, opacity:0.9 }}>tarefas pendentes</div>
-          </div>
-          <div style={{ flex:1, background:"rgba(255,255,255,0.2)", borderRadius:16, padding:"10px 14px" }}>
-            <div style={{ fontSize:22, fontWeight:800 }}>{upcoming.length}</div>
-            <div style={{ fontSize:11, opacity:0.9 }}>próx. eventos</div>
+            <div style={{ fontSize:19, fontWeight:900, letterSpacing:"-0.3px" }}>Oi, {me.name}!</div>
+            <div style={{ fontSize:12, opacity:0.88 }}>Bem-vinda ao app mais sapatão</div>
           </div>
         </div>
       </div>
 
-      {/* Lembretes de agenda — só aparece se tiver eventos próximos */}
+      {/* ── RECADINHOS ── */}
+      <BlobCard color={C.rose}>
+        <STitle icon="heart" color={C.rose}>Recadinhos</STitle>
+        {/* Recado em destaque */}
+        {(state.notes||[]).length > 0 && (() => {
+          const n = state.notes[0];
+          const u = USERS[n.who];
+          return (
+            <div style={{ background:`linear-gradient(135deg,${u.color}15,${u.color}08)`, borderRadius:16, padding:"14px 16px", marginBottom:10, borderLeft:`4px solid ${u.color}` }}>
+              <div style={{ fontSize:16, fontWeight:800, color:C.text, marginBottom:6 }}>{n.text}</div>
+              <div style={{ fontSize:11, color:C.textLight }}>{u.name} · {timeAgo(n.ts)}</div>
+            </div>
+          );
+        })()}
+        {/* Recados antigos menores */}
+        {(state.notes||[]).slice(1,4).map(n => {
+          const u = USERS[n.who];
+          return (
+            <div key={n.id} style={{ background:u.color+"10", borderRadius:12, padding:"8px 12px", marginBottom:6, borderLeft:`3px solid ${u.color}` }}>
+              <div style={{ fontSize:13, color:C.text }}>{n.text}</div>
+              <div style={{ fontSize:10, color:C.textLight, marginTop:2 }}>{u.name} · {timeAgo(n.ts)}</div>
+            </div>
+          );
+        })}
+        <div style={{ display:"flex", gap:8, marginTop:8 }}>
+          <Inp value={newNote} onChange={e=>setNewNote(e.target.value)} placeholder="Deixa um recadinho..." onEnter={addNote} style={{ flex:1 }} />
+          <Btn onClick={addNote} color={C.rose} style={{ borderRadius:12, padding:"10px 14px", minWidth:"auto" }}>
+            <Ph name="plus" size={16} color="#fff" />
+          </Btn>
+        </div>
+      </BlobCard>
+
+      {/* ── PRÓXIMOS EVENTOS ── */}
       {upcoming.length > 0 && (
-        <div style={{ marginBottom:14 }}>
-          <div style={{ fontWeight:800, fontSize:13, color:C.textMid, marginBottom:8, paddingLeft:2, display:"flex", alignItems:"center", gap:6 }}>
-            <Ph name="calendar" size={14} color={C.textMid} /> próximos eventos
-          </div>
+        <BlobCard color={C.purple}>
+          <STitle icon="calendar" color={C.purple}>Próximos eventos</STitle>
           <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
             {upcoming.map(ev => {
               const urg = urgencyColor(ev.date);
-              const days = daysUntil(ev.date);
               return (
-                <div key={ev.id} style={{
-                  background:"white", borderRadius:18, padding:"12px 14px",
-                  display:"flex", alignItems:"center", gap:12,
-                  border:`1.5px solid ${urg}33`,
-                  boxShadow:`0 3px 12px ${urg}18`,
-                }}>
-                  {/* Ícone colorido */}
-                  <div style={{
-                    width:42, height:42, borderRadius:14,
-                    background:urg+"18", flexShrink:0,
-                    display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
-                  }}>
-                    <Ph name="calendar" size={20} color={urg} />
+                <div key={ev.id} style={{ display:"flex", alignItems:"center", gap:10, background:C.purple+"08", borderRadius:14, padding:"10px 12px" }}>
+                  <div style={{ background:urg+"20", borderRadius:10, padding:"6px 10px", flexShrink:0, textAlign:"center" }}>
+                    <div style={{ fontSize:11, fontWeight:800, color:urg }}>{fmtDate(ev.date)}</div>
                   </div>
-                  {/* Info */}
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontWeight:800, fontSize:14, color:C.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{ev.title}</div>
-                    <div style={{ fontSize:11, color:C.textLight, marginTop:2 }}>
-                      {fmtDate(ev.date)}{ev.time ? " · "+ev.time : ""}
-                    </div>
-                  </div>
-                  {/* Badge dias */}
-                  <div style={{
-                    background:urg+"18", borderRadius:10, padding:"4px 10px",
-                    fontSize:11, fontWeight:800, color:urg, flexShrink:0,
-                    border:`1px solid ${urg}33`,
-                  }}>{days}</div>
-                  {/* Botão GCal */}
-                  <button onClick={()=>openGCal(ev)} style={{
-                    background:C.purpleLight, border:"none", borderRadius:10,
-                    padding:"6px 10px", cursor:"pointer", fontSize:11,
-                    color:C.purple, fontWeight:700, display:"flex", alignItems:"center", gap:4, flexShrink:0,
-                  }}>
-                    <Ph name="calendar" size={12} color={C.purple} /> GCal
+                  <div style={{ flex:1, fontSize:13, fontWeight:700, color:C.text }}>{ev.title}</div>
+                  <div style={{ fontSize:11, fontWeight:800, color:urg, background:urg+"15", borderRadius:8, padding:"3px 8px" }}>{daysUntil(ev.date)}</div>
+                  <button onClick={()=>openGCal(ev)} style={{ background:C.purpleLight, border:"none", borderRadius:8, padding:"5px 8px", cursor:"pointer", fontSize:10, color:C.purple, fontWeight:700, display:"flex", alignItems:"center", gap:3 }}>
+                    <Ph name="calendar" size={11} color={C.purple} /> GCal
                   </button>
                 </div>
               );
             })}
           </div>
-        </div>
+        </BlobCard>
       )}
 
-      {/* Status da outra */}
-      <BlobCard color={other.color} style={{ padding:"14px 16px" }}>
-        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-          <div style={{ width:40, height:40, borderRadius:"50%", background:other.color+"22", display:"flex", alignItems:"center", justifyContent:"center" }}>
-            <Ph name={moodIcon[state.users[otherUid]?.mood] || "flower"} size={22} color={other.color} />
-          </div>
-          <div>
-            <div style={{ fontWeight:700, fontSize:14, color:C.text }}>{other.name}</div>
-            <div style={{ fontSize:12, color:C.textMid }}>{state.users[otherUid]?.mood} · {state.users[otherUid]?.status}</div>
-          </div>
+      {/* ── TAREFAS PENDENTES ── */}
+      <div style={{ background:`linear-gradient(135deg,${C.yellow}33,${C.yellow}18)`, borderRadius:20, padding:"16px 18px", marginBottom:14, display:"flex", alignItems:"center", gap:14, border:`1.5px solid ${C.yellow}44` }}>
+        <div style={{ width:52, height:52, borderRadius:16, background:C.yellow+"44", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+          <Ph name="checks" size={26} color="#b8860b" />
         </div>
-      </BlobCard>
+        <div>
+          <div style={{ fontSize:28, fontWeight:900, color:"#b8860b", lineHeight:1 }}>{pending}</div>
+          <div style={{ fontSize:13, color:"#b8860b", fontWeight:600, opacity:0.8 }}>tarefas pendentes</div>
+        </div>
+      </div>
 
-      {/* Recados */}
-      <BlobCard color={C.peach}>
-        <STitle icon="chat" color={C.peach}>Recados</STitle>
-        <div style={{ display:"flex", gap:8, marginBottom:12 }}>
-          <Inp value={newNote} onChange={e=>setNewNote(e.target.value)} placeholder="Deixa um recado..." onEnter={addNote} style={{ flex:1 }} />
-          <Btn onClick={addNote} color={C.peach} style={{ borderRadius:12, padding:"10px 14px", minWidth:"auto" }}>
-            <Ph name="plus" size={16} color="#fff" />
-          </Btn>
+      {/* ── BEM-ESTAR DO CASAL ── */}
+      <BlobCard color={C.mint}>
+        <STitle icon="heart" color="#2d9e6b">Bem-estar do casal</STitle>
+
+        {/* Barra de energia */}
+        <div style={{ marginBottom:14 }}>
+          <div style={{ display:"flex", justifyContent:"space-between", fontSize:11, color:C.textLight, marginBottom:6 }}>
+            <span style={{ color:C.rose, fontWeight:700 }}>drena</span>
+            <span style={{ color:"#2d9e6b", fontWeight:700 }}>dá energia</span>
+          </div>
+          <div style={{ height:14, borderRadius:10, background:C.rose+"33", overflow:"hidden" }}>
+            <div style={{
+              height:"100%", borderRadius:10,
+              background:`linear-gradient(90deg, ${C.rose}88, #2d9e6b)`,
+              width:`${energiaPct}%`, transition:"width .6s ease",
+            }} />
+          </div>
+          {/* Indicador de posição */}
+          <div style={{ position:"relative", height:20 }}>
+            <div style={{ position:"absolute", left:`${energiaPct}%`, transform:"translateX(-50%)", fontSize:16 }}>☺</div>
+          </div>
         </div>
-        {state.notes.slice(0,4).map(n => {
-          const u = USERS[n.who];
-          return (
-            <div key={n.id} style={{ background:u.color+"10", borderRadius:14, padding:"10px 14px", marginBottom:8, borderLeft:`3px solid ${u.color}` }}>
-              <div style={{ fontSize:13, color:C.text, marginBottom:4 }}>{n.text}</div>
-              <div style={{ fontSize:11, color:C.textLight }}>{u.name} · {timeAgo(n.ts)}</div>
-            </div>
-          );
-        })}
+
+        {/* Status */}
+        <div style={{ background:equilibrio.color+"20", borderRadius:14, padding:"10px 14px", display:"flex", alignItems:"center", gap:10, marginBottom: alertas.length>0 ? 10 : 0 }}>
+          <Ph name={equilibrio.icon} size={20} color={equilibrio.color} />
+          <span style={{ fontSize:13, fontWeight:800, color:equilibrio.color }}>{equilibrio.label}</span>
+        </div>
+
+        {/* Alertas */}
+        {alertas.map((a,i) => (
+          <div key={i} style={{ background:C.rose+"12", borderRadius:12, padding:"8px 12px", marginTop:6, display:"flex", alignItems:"center", gap:8 }}>
+            <Ph name="lightning" size={14} color={C.rose} />
+            <span style={{ fontSize:12, color:C.rose, fontWeight:600 }}>Atenção: {a}</span>
+          </div>
+        ))}
       </BlobCard>
     </div>
   );

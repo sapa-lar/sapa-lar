@@ -1432,57 +1432,109 @@ function TarefasAgenda({ state, setState, uid }) {
 }
 
 // ── SENTIMENTOS ───────────────────────────────────────────
+const MOOD_CONFIG = {
+  feliz:      { icon:"sun",     bg:"#FFE566", color:"#b8860b", label:"feliz",      shape:"circle" },
+  apaixonada: { icon:"heart",   bg:"#FFB3C6", color:"#c0395a", label:"apaixonada", shape:"blob1" },
+  animada:    { icon:"sparkle", bg:"#B5F0D3", color:"#1a7a4a", label:"animada",    shape:"blob2" },
+  calma:      { icon:"moon",    bg:"#C4D4FF", color:"#2d4fa1", label:"calma",      shape:"circle" },
+  cansada:    { icon:"moon",    bg:"#E0D4F5", color:"#6b3fa0", label:"cansada",    shape:"blob1" },
+  saudade:    { icon:"flower",  bg:"#FFD6B0", color:"#b85c00", label:"saudade",    shape:"blob2" },
+};
+
+function MoodBlob({ mood, size=80, selected, onClick }) {
+  const cfg = MOOD_CONFIG[mood] || MOOD_CONFIG.feliz;
+  const borderRadius = cfg.shape === "circle" ? "50%"
+    : cfg.shape === "blob1" ? "60% 40% 55% 45% / 45% 55% 45% 55%"
+    : "40% 60% 45% 55% / 55% 45% 55% 45%";
+  return (
+    <button onClick={onClick} style={{
+      width:size, height:size, borderRadius,
+      background: cfg.bg,
+      border: selected ? `3px solid ${cfg.color}` : "3px solid transparent",
+      cursor:"pointer", display:"flex", flexDirection:"column",
+      alignItems:"center", justifyContent:"center", gap:4,
+      boxShadow: selected ? `0 6px 20px ${cfg.bg}cc` : `0 3px 10px ${cfg.bg}66`,
+      transform: selected ? "scale(1.08)" : "scale(1)",
+      transition:"all .25s cubic-bezier(.34,1.56,.64,1)",
+      flexShrink:0,
+    }}>
+      <Ph name={cfg.icon} size={size*0.32} color={cfg.color} />
+      <span style={{ fontSize:size*0.13, fontWeight:800, color:cfg.color, lineHeight:1 }}>{cfg.label}</span>
+    </button>
+  );
+}
+
 function Sentimentos({ state, setState, uid }) {
   const me = USERS[uid];
   const otherUid = uid === "fran" ? "nana" : "fran";
   const other = USERS[otherUid];
-  const moods = ["feliz","apaixonada","cansada","animada","saudade","calma"];
-  const moodIcon = { feliz:"sun", apaixonada:"heart", cansada:"moon", animada:"sparkle", saudade:"flower", calma:"moon" };
-  const setMood = (m) => setState(s=>({...s,users:{...s.users,[uid]:{...s.users[uid],mood:m}}}));
+  const myMood = state.users?.[uid]?.mood || "feliz";
+  const otherMood = state.users?.[otherUid]?.mood || "feliz";
+  const myCfg = MOOD_CONFIG[myMood] || MOOD_CONFIG.feliz;
+  const otherCfg = MOOD_CONFIG[otherMood] || MOOD_CONFIG.feliz;
+
+  const setMood = (m) => setState(s=>({...s, users:{...s.users,[uid]:{...s.users[uid],mood:m}}}));
 
   return (
-    <div>
-      {/* Como você está */}
-      <BlobCard color={me.color}>
-        <STitle icon="sun" color={me.color}>Como você está?</STitle>
-        <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
-          {moods.map(m => {
-            const cur = state.users[uid]?.mood === m;
-            return (
-              <button key={m} onClick={()=>setMood(m)} style={{
-                display:"flex", alignItems:"center", gap:5,
-                padding:"6px 12px", borderRadius:16,
-                background: cur ? me.color : me.color+"14",
-                border:"none", cursor:"pointer",
-                color: cur ? "#fff" : me.color, fontWeight:700, fontSize:12, fontFamily:"inherit",
-              }}>
-                <Ph name={moodIcon[m]} size={14} color={cur?"#fff":me.color} />
-                {m}
-              </button>
-            );
-          })}
-        </div>
-      </BlobCard>
+    <div style={{ paddingBottom:8 }}>
 
-      {/* Como a outra está */}
-      <BlobCard color={other.color}>
-        <STitle icon={moodIcon[state.users[otherUid]?.mood]||"flower"} color={other.color}>{other.name} está...</STitle>
-        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-          <div style={{ width:44, height:44, borderRadius:16, background:other.color+"18", display:"flex", alignItems:"center", justifyContent:"center" }}>
-            <Ph name={moodIcon[state.users[otherUid]?.mood]||"flower"} size={24} color={other.color} />
-          </div>
-          <div>
-            <div style={{ fontWeight:800, fontSize:16, color:other.color }}>{state.users[otherUid]?.mood || "..."}</div>
-            {state.users[otherUid]?.status && <div style={{ fontSize:12, color:C.textMid, marginTop:2 }}>{state.users[otherUid].status}</div>}
-          </div>
+      {/* Header grande como você está */}
+      <div style={{
+        borderRadius:28, padding:"22px 20px 20px",
+        background:`linear-gradient(135deg, ${myCfg.bg} 0%, ${myCfg.bg}bb 100%)`,
+        marginBottom:14, position:"relative", overflow:"hidden",
+      }}>
+        {/* Blob decorativo */}
+        <div style={{
+          position:"absolute", right:-30, top:-30,
+          width:120, height:120, borderRadius:"40% 60% 55% 45% / 45% 55% 45% 55%",
+          background:myCfg.color+"18",
+        }} />
+        <div style={{ fontSize:12, fontWeight:700, color:myCfg.color, opacity:0.8, marginBottom:4 }}>como você está hoje?</div>
+        <div style={{ fontSize:28, fontWeight:900, color:myCfg.color, marginBottom:16, letterSpacing:"-0.5px" }}>
+          me sinto {myMood} ✦
         </div>
-      </BlobCard>
+
+        {/* Grid de moods */}
+        <div style={{ display:"flex", gap:10, flexWrap:"wrap", justifyContent:"center" }}>
+          {Object.keys(MOOD_CONFIG).map(m => (
+            <MoodBlob key={m} mood={m} size={72} selected={myMood===m} onClick={()=>setMood(m)} />
+          ))}
+        </div>
+      </div>
+
+      {/* Card da outra */}
+      <div style={{
+        borderRadius:24, padding:"16px 18px",
+        background:`linear-gradient(135deg, ${otherCfg.bg}66, ${otherCfg.bg}33)`,
+        border:`2px solid ${otherCfg.bg}`,
+        marginBottom:14, display:"flex", alignItems:"center", gap:14,
+      }}>
+        <div style={{
+          width:56, height:56,
+          borderRadius: otherCfg.shape==="circle" ? "50%" : "40% 60% 55% 45% / 55% 45% 55% 45%",
+          background:otherCfg.bg,
+          display:"flex", alignItems:"center", justifyContent:"center",
+          boxShadow:`0 4px 14px ${otherCfg.bg}`,
+          flexShrink:0,
+        }}>
+          <Ph name={otherCfg.icon} size={26} color={otherCfg.color} />
+        </div>
+        <div>
+          <div style={{ fontSize:11, color:otherCfg.color, fontWeight:700, opacity:0.8 }}>{other.name} está</div>
+          <div style={{ fontSize:20, fontWeight:900, color:otherCfg.color }}>{otherMood}</div>
+        </div>
+        {/* bolinha decorativa */}
+        <div style={{ marginLeft:"auto", width:36, height:36, borderRadius:"50%", background:otherCfg.bg, display:"flex", alignItems:"center", justifyContent:"center" }}>
+          <Ph name="flower" size={18} color={otherCfg.color} />
+        </div>
+      </div>
 
       {/* Balanço de energia */}
-      <div style={{ marginBottom:8 }}>
-        <div style={{ fontWeight:800, fontSize:14, color:C.text, marginBottom:10, paddingLeft:2 }}>Balanço de energia</div>
-        <BalancoEnergia state={state} setState={setState} uid={uid} me={me} />
+      <div style={{ fontWeight:900, fontSize:15, color:C.text, marginBottom:10, paddingLeft:2, letterSpacing:"-0.3px" }}>
+        balanço de energia
       </div>
+      <BalancoEnergia state={state} setState={setState} uid={uid} me={me} />
     </div>
   );
 }

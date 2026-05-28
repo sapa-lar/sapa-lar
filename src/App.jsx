@@ -682,10 +682,30 @@ function Dreams({ state, setState, uid }) {
 
   return (
     <div>
-      {/* Tabs */}
-      <div style={{ display:"flex", gap:8, marginBottom:16 }}>
-        <Pill active={tab==="sonhos"} onClick={()=>setTab("sonhos")} color={C.rose}>Sonhos</Pill>
-        <Pill active={tab==="listas"} onClick={()=>setTab("listas")} color={C.purple}>Listas juntas</Pill>
+      {/* Tabs — scroll horizontal com todas as categorias */}
+      <div style={{ display:"flex", gap:8, overflowX:"auto", paddingBottom:8, marginBottom:16, scrollbarWidth:"none" }}>
+        <Pill active={tab==="sonhos"} onClick={()=>setTab("sonhos")} color={C.rose}>
+          <Ph name="star" size={13} color={tab==="sonhos"?"#fff":C.rose} /> Sonhos
+        </Pill>
+        {Object.entries(CATS).map(([k,v])=>(
+          <button key={k} onClick={()=>setTab(k)} style={{
+            flexShrink:0, padding:"7px 14px", borderRadius:20, border:"none", cursor:"pointer",
+            background: tab===k ? v.color : v.color+"18",
+            color: tab===k ? "#fff" : v.color,
+            fontSize:13, fontWeight:700, fontFamily:"inherit",
+            display:"flex", alignItems:"center", gap:6,
+            boxShadow: tab===k ? `0 4px 12px ${v.color}44` : "none",
+            transition:"all .2s", whiteSpace:"nowrap",
+          }}>
+            <Ph name={v.icon} size={13} color={tab===k?"#fff":v.color} />
+            {v.label}
+            {(state.saved[k]||[]).length > 0 && (
+              <span style={{ background: tab===k?"rgba(255,255,255,0.3)":v.color+"22", borderRadius:10, padding:"1px 6px", fontSize:10 }}>
+                {(state.saved[k]||[]).length}
+              </span>
+            )}
+          </button>
+        ))}
       </div>
 
       {/* ── SONHOS ── */}
@@ -708,56 +728,30 @@ function Dreams({ state, setState, uid }) {
         </BlobCard>
       )}
 
-      {/* ── LISTAS ── */}
-      {tab==="listas" && <ListasCats state={state} setState={setState} uid={uid} CATS={CATS} addItem={addItem} cycleStatus={cycleStatus} delItem={delItem} sf={sf} setSf={setSf} totalItens={totalItens} />}
+      {/* ── CATEGORIA ATIVA ── */}
+      {tab !== "sonhos" && CATS[tab] && (
+        <ListaCat
+          cat={tab}
+          meta={CATS[tab]}
+          items={state.saved[tab]||[]}
+          uid={uid}
+          sf={sf} setSf={setSf}
+          addItem={addItem}
+          cycleStatus={cycleStatus}
+          delItem={delItem}
+        />
+      )}
     </div>
   );
 }
 
-// ── LISTAS CATS ───────────────────────────────────────────
-function ListasCats({ state, setState, uid, CATS, addItem, cycleStatus, delItem, sf, setSf, totalItens }) {
-  const [activeCat, setActiveCat] = useState("filmes");
-  const meta = CATS[activeCat];
-  const items = state.saved[activeCat] || [];
+// ── LISTA CATEGORIA ───────────────────────────────────────
+function ListaCat({ cat, meta, items, uid, sf, setSf, addItem, cycleStatus, delItem }) {
   const [showForm, setShowForm] = useState(false);
-
-  const handleAdd = () => {
-    addItem();
-    setShowForm(false);
-  };
+  const handleAdd = () => { addItem(); setShowForm(false); };
 
   return (
     <div>
-      {/* Header */}
-      <div style={{ background:`linear-gradient(135deg,${C.purple},${C.purpleDark})`, borderRadius:20, padding:"14px 16px", marginBottom:14, color:"white" }}>
-        <div style={{ fontWeight:800, fontSize:16 }}>Listas juntas</div>
-        <div style={{ fontSize:12, opacity:0.85 }}>{totalItens} itens salvos no total</div>
-      </div>
-
-      {/* Menu categorias — scroll horizontal */}
-      <div style={{ display:"flex", gap:8, overflowX:"auto", paddingBottom:8, marginBottom:14, scrollbarWidth:"none" }}>
-        {Object.entries(CATS).map(([k,v])=>(
-          <button key={k} onClick={()=>{ setActiveCat(k); setSf(f=>({...f,cat:k,status:v.status[0]})); setShowForm(false); }} style={{
-            flexShrink:0, padding:"8px 14px", borderRadius:20, border:"none", cursor:"pointer",
-            background: activeCat===k ? v.color : v.color+"18",
-            color: activeCat===k ? "#fff" : v.color,
-            fontSize:12, fontWeight:700, fontFamily:"inherit",
-            display:"flex", alignItems:"center", gap:6,
-            boxShadow: activeCat===k ? `0 4px 12px ${v.color}44` : "none",
-            transition:"all .2s",
-          }}>
-            <Ph name={v.icon} size={14} color={activeCat===k?"#fff":v.color} />
-            {v.label}
-            {(state.saved[k]||[]).length > 0 && (
-              <span style={{ background: activeCat===k?"rgba(255,255,255,0.3)":v.color+"22", borderRadius:10, padding:"1px 6px", fontSize:10 }}>
-                {(state.saved[k]||[]).length}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* Botão adicionar */}
       <button onClick={()=>setShowForm(s=>!s)} style={{
         width:"100%", padding:"12px", borderRadius:16, border:`2px dashed ${meta.color}55`,
         background: showForm ? meta.color+"15" : "transparent",
@@ -769,10 +763,9 @@ function ListasCats({ state, setState, uid, CATS, addItem, cycleStatus, delItem,
         Adicionar em {meta.label}
       </button>
 
-      {/* Formulário */}
       {showForm && (
         <BlobCard color={meta.color} style={{ marginBottom:14 }}>
-          <Inp value={sf.text} onChange={e=>setSf(f=>({...f,text:e.target.value}))} placeholder="Nome / título..." style={{ marginBottom:8 }} onEnter={handleAdd} />
+          <Inp value={sf.text} onChange={e=>setSf(f=>({...f,text:e.target.value,cat,status:meta.status[0]}))} placeholder="Nome / título..." style={{ marginBottom:8 }} onEnter={handleAdd} />
           <Inp value={sf.link} onChange={e=>setSf(f=>({...f,link:e.target.value}))} placeholder="Link (opcional)" style={{ marginBottom:10 }} />
           <div style={{ display:"flex", gap:8, alignItems:"center" }}>
             {["fran","nana"].map(u=>(
@@ -783,11 +776,10 @@ function ListasCats({ state, setState, uid, CATS, addItem, cycleStatus, delItem,
         </BlobCard>
       )}
 
-      {/* Lista da categoria ativa */}
       {items.length === 0 ? (
         <div style={{ textAlign:"center", padding:"40px 20px", color:C.textLight }}>
           <Ph name={meta.icon} size={40} color={meta.color+"55"} />
-          <div style={{ marginTop:12, fontSize:14 }}>Nenhum item ainda em {meta.label}</div>
+          <div style={{ marginTop:12, fontSize:14 }}>Nada em {meta.label} ainda</div>
           <div style={{ fontSize:12, marginTop:4 }}>Clica em "Adicionar" pra começar!</div>
         </div>
       ) : (
@@ -812,12 +804,12 @@ function ListasCats({ state, setState, uid, CATS, addItem, cycleStatus, delItem,
                 </div>
                 <div style={{ fontSize:11, color:C.textLight, marginTop:2 }}>por {USERS[item.who]?.name}</div>
               </div>
-              <button onClick={()=>cycleStatus(activeCat,item.id)} style={{
+              <button onClick={()=>cycleStatus(cat,item.id)} style={{
                 background:meta.color+"18", border:`1px solid ${meta.color}33`,
                 borderRadius:10, padding:"4px 10px", cursor:"pointer",
                 fontSize:11, color:meta.color, fontWeight:700, whiteSpace:"nowrap", fontFamily:"inherit",
               }}>{item.status}</button>
-              <button onClick={()=>delItem(activeCat,item.id)} style={{ background:"none", border:"none", cursor:"pointer", flexShrink:0 }}>
+              <button onClick={()=>delItem(cat,item.id)} style={{ background:"none", border:"none", cursor:"pointer", flexShrink:0 }}>
                 <Ph name="x" size={14} color={C.textLight} />
               </button>
             </div>

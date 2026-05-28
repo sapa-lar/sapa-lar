@@ -101,6 +101,10 @@ const INIT = {
     fran: { mood:"feliz", status:"" },
     nana: { mood:"feliz", status:"" },
   },
+  balanco: {
+    fran: { drena:[], energia:[] },
+    nana: { drena:[], energia:[] },
+  },
   inspiracoes: [],
   saude: {
     fran: { alergias:[], medicamentos:[], consultas:[], tipoSanguineo:"", obs:"" },
@@ -322,6 +326,109 @@ function Login({ onLogin }) {
   );
 }
 
+// ── BALANÇO DE ENERGIA ────────────────────────────────────
+function BalancoEnergia({ state, setState, uid, me }) {
+  const [inputDrena, setInputDrena] = useState("");
+  const [inputEnergia, setInputEnergia] = useState("");
+
+  const balanco = state.balanco?.[uid] || { drena:[], energia:[] };
+
+  const addItem = (tipo, text) => {
+    if (!text.trim()) return;
+    setState(s => ({
+      ...s,
+      balanco: {
+        ...s.balanco,
+        [uid]: {
+          ...s.balanco?.[uid],
+          [tipo]: [...(s.balanco?.[uid]?.[tipo] || []), { id: Date.now(), text }]
+        }
+      }
+    }));
+  };
+
+  const delItem = (tipo, id) => {
+    setState(s => ({
+      ...s,
+      balanco: {
+        ...s.balanco,
+        [uid]: {
+          ...s.balanco?.[uid],
+          [tipo]: (s.balanco?.[uid]?.[tipo] || []).filter(i => i.id !== id)
+        }
+      }
+    }));
+  };
+
+  return (
+    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:14 }}>
+      {/* Drena */}
+      <div style={{ background:"white", borderRadius:20, padding:14, border:`1.5px solid ${C.rose}22`, boxShadow:`0 4px 16px ${C.rose}10` }}>
+        <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:10 }}>
+          <div style={{ width:28, height:28, borderRadius:10, background:C.rose+"15", display:"flex", alignItems:"center", justifyContent:"center" }}>
+            <Ph name="lightning" size={15} color={C.rose} />
+          </div>
+          <span style={{ fontWeight:800, fontSize:13, color:C.rose }}>Drena</span>
+        </div>
+        <div style={{ display:"flex", flexDirection:"column", gap:6, marginBottom:8 }}>
+          {balanco.drena.map(i => (
+            <div key={i.id} style={{ display:"flex", alignItems:"center", gap:6, background:C.rose+"08", borderRadius:10, padding:"5px 8px" }}>
+              <span style={{ flex:1, fontSize:12, color:C.text }}>{i.text}</span>
+              <button onClick={()=>delItem("drena",i.id)} style={{ background:"none", border:"none", cursor:"pointer", padding:0 }}>
+                <Ph name="x" size={12} color={C.textLight} />
+              </button>
+            </div>
+          ))}
+        </div>
+        <div style={{ display:"flex", gap:6 }}>
+          <input
+            value={inputDrena}
+            onChange={e=>setInputDrena(e.target.value)}
+            onKeyDown={e=>{ if(e.key==="Enter"){ addItem("drena",inputDrena); setInputDrena(""); }}}
+            placeholder="adicionar..."
+            style={{ flex:1, border:`1px solid ${C.rose}33`, borderRadius:10, padding:"5px 8px", fontSize:12, fontFamily:"inherit", outline:"none", background:C.rose+"06", color:C.text }}
+          />
+          <button onClick={()=>{ addItem("drena",inputDrena); setInputDrena(""); }} style={{ background:C.rose, border:"none", borderRadius:10, width:28, height:28, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
+            <Ph name="plus" size={13} color="#fff" />
+          </button>
+        </div>
+      </div>
+
+      {/* Dá energia */}
+      <div style={{ background:"white", borderRadius:20, padding:14, border:`1.5px solid ${C.mint}44`, boxShadow:`0 4px 16px ${C.mint}15` }}>
+        <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:10 }}>
+          <div style={{ width:28, height:28, borderRadius:10, background:C.mint+"25", display:"flex", alignItems:"center", justifyContent:"center" }}>
+            <Ph name="sparkle" size={15} color="#2d9e6b" />
+          </div>
+          <span style={{ fontWeight:800, fontSize:13, color:"#2d9e6b" }}>Dá energia</span>
+        </div>
+        <div style={{ display:"flex", flexDirection:"column", gap:6, marginBottom:8 }}>
+          {balanco.energia.map(i => (
+            <div key={i.id} style={{ display:"flex", alignItems:"center", gap:6, background:C.mint+"18", borderRadius:10, padding:"5px 8px" }}>
+              <span style={{ flex:1, fontSize:12, color:C.text }}>{i.text}</span>
+              <button onClick={()=>delItem("energia",i.id)} style={{ background:"none", border:"none", cursor:"pointer", padding:0 }}>
+                <Ph name="x" size={12} color={C.textLight} />
+              </button>
+            </div>
+          ))}
+        </div>
+        <div style={{ display:"flex", gap:6 }}>
+          <input
+            value={inputEnergia}
+            onChange={e=>setInputEnergia(e.target.value)}
+            onKeyDown={e=>{ if(e.key==="Enter"){ addItem("energia",inputEnergia); setInputEnergia(""); }}}
+            placeholder="adicionar..."
+            style={{ flex:1, border:`1px solid ${C.mint}55`, borderRadius:10, padding:"5px 8px", fontSize:12, fontFamily:"inherit", outline:"none", background:C.mint+"10", color:C.text }}
+          />
+          <button onClick={()=>{ addItem("energia",inputEnergia); setInputEnergia(""); }} style={{ background:"#2d9e6b", border:"none", borderRadius:10, width:28, height:28, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
+            <Ph name="plus" size={13} color="#fff" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── HOME ──────────────────────────────────────────────────
 function Home({ state, setState, uid }) {
   const me = USERS[uid];
@@ -406,6 +513,9 @@ function Home({ state, setState, uid }) {
           })}
         </div>
       </BlobCard>
+
+      {/* Balanço de energia */}
+      <BalancoEnergia state={state} setState={setState} uid={uid} me={me} />
 
       {/* Recados */}
       <BlobCard color={C.peach}>

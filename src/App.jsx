@@ -462,7 +462,19 @@ function Home({ state, setState, uid }) {
     return C.mint;
   };
 
-  const addNote = () => {
+  const openGCal = (ev) => {
+    const d = ev.date.replace(/-/g,"");
+    let dates;
+    if (ev.time) {
+      const [h,m] = ev.time.split(":");
+      const start = `${d}T${h}${m}00`;
+      const endH = String(parseInt(h)+1).padStart(2,"0");
+      dates = `${start}/${d}T${endH}${m}00`;
+    } else {
+      dates = `${d}/${d}`;
+    }
+    window.open(`https://calendar.google.com/calendar/r/eventedit?text=${encodeURIComponent(ev.title)}&dates=${dates}`, "_blank");
+  };
     if (!newNote.trim()) return;
     setState(s => ({ ...s, notes:[{ id:Date.now(), text:newNote, who:uid, ts:Date.now() }, ...s.notes] }));
     setNewNote("");
@@ -536,6 +548,14 @@ function Home({ state, setState, uid }) {
                     fontSize:11, fontWeight:800, color:urg, flexShrink:0,
                     border:`1px solid ${urg}33`,
                   }}>{days}</div>
+                  {/* Botão GCal */}
+                  <button onClick={()=>openGCal(ev)} style={{
+                    background:C.purpleLight, border:"none", borderRadius:10,
+                    padding:"6px 10px", cursor:"pointer", fontSize:11,
+                    color:C.purple, fontWeight:700, display:"flex", alignItems:"center", gap:4, flexShrink:0,
+                  }}>
+                    <Ph name="calendar" size={12} color={C.purple} /> GCal
+                  </button>
                 </div>
               );
             })}
@@ -650,8 +670,19 @@ function Agenda({ state, setState, uid }) {
   const del = id => setState(s => ({ ...s, events:s.events.filter(e=>e.id!==id) }));
   const sorted = [...state.events].sort((a,b)=>a.date.localeCompare(b.date));
   const openGCal = ev => {
-    const dt = ev.date.replace(/-/g,"");
-    window.open(`https://calendar.google.com/calendar/r/eventedit?text=${encodeURIComponent(ev.title)}&dates=${dt}/${dt}`, "_blank");
+    const d = ev.date.replace(/-/g,"");
+    let dates;
+    if (ev.time) {
+      // Com horário: cria evento de 1h
+      const [h,m] = ev.time.split(":");
+      const start = `${d}T${h}${m}00`;
+      const endH = String(parseInt(h)+1).padStart(2,"0");
+      const end = `${d}T${endH}${m}00`;
+      dates = `${start}/${end}`;
+    } else {
+      dates = `${d}/${d}`;
+    }
+    window.open(`https://calendar.google.com/calendar/r/eventedit?text=${encodeURIComponent(ev.title)}&dates=${dates}`, "_blank");
   };
 
   return (

@@ -801,11 +801,12 @@ function Inspiracao({ state, setState, uid }) {
   const del = id => setState(s=>({...s,inspiracoes:(s.inspiracoes||[]).filter(i=>i.id!==id)}));
 
   const statusVoto = (votos) => {
-    const f=votos.fran, n=votos.nana;
+    const f=votos?.fran, n=votos?.nana;
     if(f==="gostei"&&n==="gostei") return { label:"As duas amaram!", color:C.mint };
     if(f==="nao"&&n==="nao") return { label:"As duas dispensaram", color:C.textLight };
     if((f==="gostei"&&n==="nao")||(f==="nao"&&n==="gostei")) return { label:"Opinião dividida", color:C.yellow };
     if(f==="gostei"||n==="gostei") return { label:"Uma gostou", color:C.peach };
+    if(f==="nao"||n==="nao") return { label:"Uma não gostou", color:C.rose };
     return { label:"Sem votos ainda", color:C.border };
   };
 

@@ -435,11 +435,32 @@ function Home({ state, setState, uid }) {
   const other = uid === "nana" ? USERS.fran : USERS.nana;
   const otherUid = uid === "nana" ? "fran" : "nana";
   const pending = state.tasks.filter(t => !t.done).length;
-  const nextEvent = [...state.events].sort((a,b) => a.date.localeCompare(b.date))[0];
   const [newNote, setNewNote] = useState("");
 
   const moods = ["feliz","apaixonada","cansada","animada","saudade","calma"];
   const moodIcon = { feliz:"sun", apaixonada:"heart", cansada:"moon", animada:"sparkle", saudade:"flower", calma:"moon" };
+
+  // Próximos eventos — só os que ainda não passaram, ordenados por data
+  const today = new Date().toISOString().slice(0,10);
+  const upcoming = [...(state.events||[])]
+    .filter(e => e.date >= today)
+    .sort((a,b) => a.date.localeCompare(b.date))
+    .slice(0, 3);
+
+  // Calcula dias restantes
+  const daysUntil = (dateStr) => {
+    const diff = Math.round((new Date(dateStr+"T12:00:00") - new Date()) / 86400000);
+    if (diff === 0) return "hoje!";
+    if (diff === 1) return "amanhã";
+    return `em ${diff} dias`;
+  };
+
+  const urgencyColor = (dateStr) => {
+    const diff = Math.round((new Date(dateStr+"T12:00:00") - new Date()) / 86400000);
+    if (diff <= 1) return C.rose;
+    if (diff <= 7) return C.peach;
+    return C.mint;
+  };
 
   const addNote = () => {
     if (!newNote.trim()) return;
@@ -470,24 +491,67 @@ function Home({ state, setState, uid }) {
             <div style={{ fontSize:22, fontWeight:800 }}>{pending}</div>
             <div style={{ fontSize:11, opacity:0.9 }}>tarefas pendentes</div>
           </div>
-          {nextEvent && (
-            <div style={{ flex:2, background:"rgba(255,255,255,0.2)", borderRadius:16, padding:"10px 14px" }}>
-              <div style={{ fontSize:12, fontWeight:700 }}>{nextEvent.title}</div>
-              <div style={{ fontSize:11, opacity:0.9 }}>{fmtDate(nextEvent.date)}{nextEvent.time && " · " + nextEvent.time}</div>
-            </div>
-          )}
+          <div style={{ flex:1, background:"rgba(255,255,255,0.2)", borderRadius:16, padding:"10px 14px" }}>
+            <div style={{ fontSize:22, fontWeight:800 }}>{upcoming.length}</div>
+            <div style={{ fontSize:11, opacity:0.9 }}>próx. eventos</div>
+          </div>
         </div>
       </div>
+
+      {/* Lembretes de agenda — só aparece se tiver eventos próximos */}
+      {upcoming.length > 0 && (
+        <div style={{ marginBottom:14 }}>
+          <div style={{ fontWeight:800, fontSize:13, color:C.textMid, marginBottom:8, paddingLeft:2, display:"flex", alignItems:"center", gap:6 }}>
+            <Ph name="calendar" size={14} color={C.textMid} /> próximos eventos
+          </div>
+          <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+            {upcoming.map(ev => {
+              const urg = urgencyColor(ev.date);
+              const days = daysUntil(ev.date);
+              return (
+                <div key={ev.id} style={{
+                  background:"white", borderRadius:18, padding:"12px 14px",
+                  display:"flex", alignItems:"center", gap:12,
+                  border:`1.5px solid ${urg}33`,
+                  boxShadow:`0 3px 12px ${urg}18`,
+                }}>
+                  {/* Ícone colorido */}
+                  <div style={{
+                    width:42, height:42, borderRadius:14,
+                    background:urg+"18", flexShrink:0,
+                    display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
+                  }}>
+                    <Ph name="calendar" size={20} color={urg} />
+                  </div>
+                  {/* Info */}
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontWeight:800, fontSize:14, color:C.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{ev.title}</div>
+                    <div style={{ fontSize:11, color:C.textLight, marginTop:2 }}>
+                      {fmtDate(ev.date)}{ev.time ? " · "+ev.time : ""}
+                    </div>
+                  </div>
+                  {/* Badge dias */}
+                  <div style={{
+                    background:urg+"18", borderRadius:10, padding:"4px 10px",
+                    fontSize:11, fontWeight:800, color:urg, flexShrink:0,
+                    border:`1px solid ${urg}33`,
+                  }}>{days}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Status da outra */}
       <BlobCard color={other.color} style={{ padding:"14px 16px" }}>
         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
           <div style={{ width:40, height:40, borderRadius:"50%", background:other.color+"22", display:"flex", alignItems:"center", justifyContent:"center" }}>
-            <Ph name={moodIcon[state.users[otherUid].mood] || "flower"} size={22} color={other.color} />
+            <Ph name={moodIcon[state.users[otherUid]?.mood] || "flower"} size={22} color={other.color} />
           </div>
           <div>
             <div style={{ fontWeight:700, fontSize:14, color:C.text }}>{other.name}</div>
-            <div style={{ fontSize:12, color:C.textMid }}>{state.users[otherUid].mood} · {state.users[otherUid].status}</div>
+            <div style={{ fontSize:12, color:C.textMid }}>{state.users[otherUid]?.mood} · {state.users[otherUid]?.status}</div>
           </div>
         </div>
       </BlobCard>
